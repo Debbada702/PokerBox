@@ -141,14 +141,6 @@ export async function loginWithGoogleOAuth() {
     return { ok: false, error: 'Configura Supabase per usare Google OAuth' };
   }
 
-  const provider = await getSupabaseExternalProvider('google');
-  if (provider.ok && !provider.enabled) {
-    return {
-      ok: false,
-      error: 'Google non e abilitato in Supabase. Attivalo da Authentication > Providers > Google.',
-    };
-  }
-
   const redirectTo = supabaseConfig.redirectUrl || `${window.location.origin}${window.location.pathname}`;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -163,19 +155,6 @@ export async function loginWithGoogleOAuth() {
 
   if (error) return { ok: false, error: error.message };
   return { ok: true, redirecting: true };
-}
-
-async function getSupabaseExternalProvider(provider) {
-  try {
-    const res = await fetch(`${supabaseConfig.url}/auth/v1/settings`, {
-      headers: { apikey: supabaseConfig.anonKey },
-    });
-    if (!res.ok) return { ok: false };
-    const settings = await res.json();
-    return { ok: true, enabled: !!settings?.external?.[provider] };
-  } catch {
-    return { ok: false };
-  }
 }
 
 export function logout() {
