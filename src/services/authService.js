@@ -439,7 +439,8 @@ async function buildSafeUserFromSupabaseUser(user, fallbackEmail = '') {
 async function saveUserChipsSupabase(userId, chips) {
   const { error } = await supabase
     .from(PLAYERS_TABLE)
-    .upsert({ id: userId, chips }, { onConflict: 'id' });
+    .update({ chips })
+    .eq('id', userId);
   if (error) return;
 
   const session = await getCurrentUser();

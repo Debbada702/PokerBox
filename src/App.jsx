@@ -58,6 +58,7 @@ function App() {
 
   const isSharedRoom = activeRoom?.code && activeRoom.code !== 'LOCAL';
   const isRoomHost = isSharedRoom && activeRoom?.hostId === user?.id;
+  const shouldPersistChips = !!isSharedRoom;
 
   const handleChipsFromBotti = useCallback(
     (chipsAdded) => {
@@ -120,7 +121,7 @@ function App() {
   );
 
   const leaveGame = useCallback(() => {
-    if (gameState && user) {
+    if (shouldPersistChips && gameState && user) {
       const human = getHumanPlayer(gameState);
       if (human) updateChips(human.chips);
     }
@@ -130,7 +131,7 @@ function App() {
     setGameState(null);
     setActiveRoom(null);
     setScreen('home');
-  }, [gameState, user, activeRoom, updateChips]);
+  }, [shouldPersistChips, gameState, user, activeRoom, updateChips]);
 
   const handleLogout = useCallback(() => {
     if (screen === 'game') leaveGame();
@@ -151,13 +152,13 @@ function App() {
   }, [user, enterLobby]);
 
   useEffect(() => {
-    if (screen !== 'game' || !gameState || !user) return;
+    if (!shouldPersistChips || screen !== 'game' || !gameState || !user) return;
     const human = getHumanPlayer(gameState);
     if (human && human.chips !== lastSyncedChips.current) {
       lastSyncedChips.current = human.chips;
       updateChips(human.chips);
     }
-  }, [gameState, screen, user, updateChips]);
+  }, [shouldPersistChips, gameState, screen, user, updateChips]);
 
   useEffect(() => {
     if (screen !== 'game' || !user) return;
