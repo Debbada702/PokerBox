@@ -1,15 +1,15 @@
 import './ActionFeed.css';
 
 const TYPE_ICONS = {
-  fold: '✕',
-  check: '✓',
-  call: '◎',
-  raise: '↑',
-  bet: '↑',
-  blind: '◆',
-  win: '★',
-  phase: '•',
-  info: 'ℹ',
+  fold: 'X',
+  check: 'OK',
+  call: 'C',
+  raise: '+',
+  bet: '+',
+  blind: 'B',
+  win: 'W',
+  phase: '>',
+  info: 'i',
 };
 
 export default function ActionFeed({ entries, latest }) {
@@ -18,7 +18,7 @@ export default function ActionFeed({ entries, latest }) {
       {latest && (
         <div className={`action-feed__banner action-feed__banner--${latest.type}`}>
           <span className="action-feed__banner-icon" aria-hidden>
-            {TYPE_ICONS[latest.type] ?? '•'}
+            {TYPE_ICONS[latest.type] ?? 'i'}
           </span>
           <div className="action-feed__banner-text">
             {latest.playerName && (
@@ -37,7 +37,7 @@ export default function ActionFeed({ entries, latest }) {
           {entries.slice(1, 6).map((entry) => (
             <li key={entry.id} className={`action-feed__item action-feed__item--${entry.type}`}>
               <span className="action-feed__item-icon" aria-hidden>
-                {TYPE_ICONS[entry.type] ?? '•'}
+                {TYPE_ICONS[entry.type] ?? 'i'}
               </span>
               <span>
                 {entry.playerName && (

@@ -1,11 +1,11 @@
 import './ActionsBar.css';
 
 const ACTIONS = [
-  { id: 'deal', label: 'Deal', icon: '🃏', variant: 'deal', showWhen: ['idle', 'showdown'] },
-  { id: 'check', label: 'Check', icon: '✓', variant: 'check' },
-  { id: 'call', label: 'Call', icon: '◎', variant: 'call', dynamicLabel: true },
-  { id: 'raise', label: 'Raise', icon: '↑', variant: 'raise', dynamicLabel: true },
-  { id: 'fold', label: 'Fold', icon: '✕', variant: 'fold' },
+  { id: 'deal', label: 'Deal', icon: 'D', variant: 'deal', showWhen: ['idle', 'showdown'] },
+  { id: 'check', label: 'Check', icon: 'OK', variant: 'check' },
+  { id: 'call', label: 'Call', icon: 'C', variant: 'call', dynamicLabel: true },
+  { id: 'raise', label: 'Raise', icon: '+', variant: 'raise', dynamicLabel: true },
+  { id: 'fold', label: 'Fold', icon: 'X', variant: 'fold' },
 ];
 
 export default function ActionsBar({
@@ -40,13 +40,13 @@ export default function ActionsBar({
           <span className="actions-bar__hud-value">{pot.toLocaleString()}</span>
         </div>
         <div className="actions-bar__hud-item">
-          <span className="actions-bar__hud-label">Puntata attuale</span>
+          <span className="actions-bar__hud-label">Puntata</span>
           <span className="actions-bar__hud-value">{currentBet}</span>
         </div>
         <div className="actions-bar__hud-item">
-          <span className="actions-bar__hud-label">Le tue chips</span>
+          <span className="actions-bar__hud-label">Stack</span>
           <span className="actions-bar__hud-value actions-bar__hud-value--gold">
-            {humanChips?.toLocaleString() ?? '—'}
+            {humanChips?.toLocaleString() ?? '-'}
           </span>
         </div>
       </div>

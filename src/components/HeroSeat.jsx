@@ -39,7 +39,7 @@ export default function HeroSeat({ player, isActiveTurn, showCards, phase }) {
           <PlayingCard card={holeCards[1]} hidden={!cardsVisible} size="xl" delay={100} />
         </div>
       </div>
-      {isActiveTurn && <p className="hero-seat__turn-hint">È il tuo turno</p>}
+      {isActiveTurn && <p className="hero-seat__turn-hint">E il tuo turno</p>}
     </div>
   );
 }

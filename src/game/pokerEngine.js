@@ -214,12 +214,13 @@ function burn(deck) {
 
 function settleShowdown(players, communityCards) {
   const updatedPlayers = players.map((p) => ({ ...p }));
+  const awards = new Map(updatedPlayers.map((p) => [p.id, 0]));
   const levels = [...new Set(updatedPlayers.map((p) => p.committed ?? 0).filter((n) => n > 0))]
     .sort((a, b) => a - b);
 
   let previous = 0;
   let description = 'Mano vincente';
-  const winnerIds = new Set();
+  const potResults = [];
 
   for (const level of levels) {
     const contributors = updatedPlayers.filter((p) => (p.committed ?? 0) >= level);
@@ -234,22 +235,37 @@ function settleShowdown(players, communityCards) {
     description = result.description;
     const share = Math.floor(potAmount / result.winners.length);
     let remainder = potAmount - share * result.winners.length;
+    const potWinnerNames = [];
 
     for (const { player } of result.winners) {
       const target = updatedPlayers.find((p) => p.id === player.id);
       if (!target) continue;
-      target.status = 'winner';
-      target.chips += share + (remainder > 0 ? 1 : 0);
+      const payout = share + (remainder > 0 ? 1 : 0);
+      target.chips += payout;
+      awards.set(target.id, (awards.get(target.id) ?? 0) + payout);
+      potWinnerNames.push(target.name);
       remainder = Math.max(0, remainder - 1);
-      winnerIds.add(target.id);
     }
+
+    potResults.push({ amount: potAmount, winnerNames: potWinnerNames, description: result.description });
   }
 
+  const awardEntries = [...awards.entries()].filter(([, amount]) => amount > 0);
+  const topAward = awardEntries.reduce((max, [, amount]) => Math.max(max, amount), 0);
+  const winnerIds = awardEntries
+    .filter(([, amount]) => amount === topAward)
+    .map(([id]) => id);
+  const winnerSet = new Set(winnerIds);
+  const finalPlayers = updatedPlayers.map((p) => (
+    winnerSet.has(p.id) ? { ...p, status: 'winner' } : p
+  ));
+
   return {
-    players: updatedPlayers,
-    winnerIds: [...winnerIds],
-    winnerNames: updatedPlayers.filter((p) => winnerIds.has(p.id)).map((p) => p.name),
+    players: finalPlayers,
+    winnerIds,
+    winnerNames: finalPlayers.filter((p) => winnerSet.has(p.id)).map((p) => p.name),
     description,
+    potResults,
   };
 }
 
