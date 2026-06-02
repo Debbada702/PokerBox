@@ -5,6 +5,7 @@ const ACTIONS = [
   { id: 'check', label: 'Check', icon: 'OK', variant: 'check' },
   { id: 'call', label: 'Call', icon: 'C', variant: 'call', dynamicLabel: true },
   { id: 'raise', label: 'Raise', icon: '+', variant: 'raise', dynamicLabel: true },
+  { id: 'allin', label: 'All In', icon: 'AI', variant: 'allin' },
   { id: 'fold', label: 'Fold', icon: 'X', variant: 'fold' },
 ];
 
@@ -15,6 +16,7 @@ export default function ActionsBar({
   onCheck,
   onCall,
   onRaise,
+  onAllIn,
   onFold,
   disabled,
   pot,
@@ -24,7 +26,7 @@ export default function ActionsBar({
   humanChips,
 }) {
   const inHand = phase !== 'idle' && phase !== 'showdown';
-  const handlers = { deal: onDeal, check: onCheck, call: onCall, raise: onRaise, fold: onFold };
+  const handlers = { deal: onDeal, check: onCheck, call: onCall, raise: onRaise, allin: onAllIn, fold: onFold };
 
   const getLabel = (id, base) => {
     if (id === 'call' && toCall > 0) return `Call ${toCall}`;

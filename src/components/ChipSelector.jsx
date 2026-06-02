@@ -4,7 +4,7 @@ import './ChipSelector.css';
 const CHIP_COLORS = {
   5: '#e8e8e8',
   10: '#3d9a52',
-  25: '#2a6ab8',
+  20: '#2a6ab8',
   50: '#c96a30',
   100: '#1a1a1a',
   250: '#8a3535',

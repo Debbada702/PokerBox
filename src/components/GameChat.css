@@ -1,0 +1,70 @@
+.game-chat {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+  padding: 0.45rem 0.6rem;
+  background: rgba(8, 13, 18, 0.9);
+  border: 1px solid rgba(224, 185, 63, 0.18);
+  border-radius: 9px;
+}
+
+.game-chat__messages {
+  min-height: 38px;
+  max-height: 84px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.game-chat__empty,
+.game-chat__message {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.game-chat__empty {
+  color: #75869a;
+}
+
+.game-chat__message {
+  display: flex;
+  gap: 0.42rem;
+  color: #dce6f0;
+}
+
+.game-chat__message strong {
+  flex-shrink: 0;
+  color: #f0d15b;
+}
+
+.game-chat__form {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.game-chat__form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.42rem 0.55rem;
+  color: #eef5ff;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+}
+
+.game-chat__form button {
+  padding: 0.42rem 0.7rem;
+  color: #171103;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: #f0d15b;
+  border: 1px solid #705516;
+  border-radius: 7px;
+  cursor: pointer;
+}

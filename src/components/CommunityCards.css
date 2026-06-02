@@ -16,9 +16,9 @@
 
 .community-cards__row {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-content: center;
-  min-height: 62px;
+  min-height: 58px;
   align-items: center;
 }
 

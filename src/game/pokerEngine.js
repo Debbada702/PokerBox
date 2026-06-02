@@ -14,7 +14,7 @@ export const PHASES = {
 
 export const SMALL_BLIND = 10;
 export const BIG_BLIND = 20;
-export const CHIP_VALUES = [5, 10, 25, 50, 100, 250, 500];
+export const CHIP_VALUES = [5, 10, 20, 50, 100, 250, 500];
 
 const BOT_NAMES = ['Alex', 'Mia', 'Leo', 'Sara', 'Max', 'Eva'];
 const SUIT_TO_SOLVER = {
@@ -460,6 +460,23 @@ export function playerAction(state, action, options = {}) {
       type: 'raise',
       playerName: active.name,
       text: updatedPlayers[activePlayerIndex].chips === 0 ? `all-in a ${newCurrentBet}` : `raise a ${newCurrentBet}`,
+      amount: result.added,
+    };
+  } else if (action === 'allin') {
+    const allInAmount = active.chips;
+    const result = applyBet(updatedPlayers, activePlayerIndex, allInAmount, newPot);
+    updatedPlayers = result.players;
+    newPot = result.pot;
+    newCurrentBet = Math.max(currentBet, updatedPlayers[activePlayerIndex].currentBet);
+
+    const actualRaise = Math.max(0, newCurrentBet - currentBet);
+    bettingRound = actualRaise >= minRaise
+      ? resetActedAfterRaise(bettingRound, activePlayerIndex, actualRaise)
+      : markActed(bettingRound, activePlayerIndex);
+    logEntry = {
+      type: 'raise',
+      playerName: active.name,
+      text: `all-in a ${updatedPlayers[activePlayerIndex].currentBet}`,
       amount: result.added,
     };
   }

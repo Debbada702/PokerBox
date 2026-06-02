@@ -4,6 +4,8 @@ import CommunityCards from './CommunityCards.jsx';
 import ActionsBar from './ActionsBar.jsx';
 import ActionFeed from './ActionFeed.jsx';
 import ChipSelector from './ChipSelector.jsx';
+import WinBurst from './WinBurst.jsx';
+import GameChat from './GameChat.jsx';
 import { getPhaseLabel, getHumanPlayer } from '../game/pokerEngine.js';
 import {
   splitLocalAndOpponents,
@@ -20,8 +22,11 @@ export default function PokerTable({
   onCheck,
   onCall,
   onRaise,
+  onAllIn,
   onFold,
   userNametag,
+  roomCode,
+  user,
 }) {
   const {
     phase,
@@ -75,6 +80,7 @@ export default function PokerTable({
               <strong>Mano #{handNumber}</strong>
             </div>
             <div className="poker-table__logo-felt">PB</div>
+            <WinBurst latest={latest} human={human} />
 
             {opponents.map((entry, i) => (
               <PlayerSeat
@@ -136,6 +142,7 @@ export default function PokerTable({
           onCheck={onCheck}
           onCall={onCall}
           onRaise={onRaise}
+          onAllIn={onAllIn}
           onFold={onFold}
           disabled={!humanTurn}
           pot={pot}
@@ -144,6 +151,7 @@ export default function PokerTable({
           selectedBet={selectedBet}
           humanChips={human?.chips}
         />
+        <GameChat roomCode={roomCode} user={user} />
       </footer>
     </div>
   );

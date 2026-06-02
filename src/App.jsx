@@ -51,7 +51,7 @@ function App() {
 
   const wallet = useWallet();
   const botTimerRef = useRef(null);
-  const lastSyncedHand = useRef(0);
+  const lastSyncedChips = useRef(null);
   const urlRoomHandled = useRef(false);
   const gameStartingRef = useRef(false);
   const sharedSaveRef = useRef(false);
@@ -81,7 +81,7 @@ function App() {
     setActiveRoom({ code: 'LOCAL', quick: true });
     setGameState(createInitialState(6, user));
     setScreen('game');
-    lastSyncedHand.current = 0;
+    lastSyncedChips.current = user.chips;
   }, [user]);
 
   const startGameFromLobby = useCallback(
@@ -102,7 +102,7 @@ function App() {
       setActiveRoom({ ...room, startMode });
       setGameState(withHumanPerspective(nextGame ?? createGameFromRoster(buildRoster(room, startMode, user), user), user));
       setScreen('game');
-      lastSyncedHand.current = 0;
+      lastSyncedChips.current = user.chips;
     },
     [user, activeRoom],
   );
@@ -152,12 +152,9 @@ function App() {
 
   useEffect(() => {
     if (screen !== 'game' || !gameState || !user) return;
-    if (gameState.phase !== PHASES.SHOWDOWN) return;
-    if (gameState.handNumber === lastSyncedHand.current) return;
-
     const human = getHumanPlayer(gameState);
-    if (human && human.chips !== user.chips) {
-      lastSyncedHand.current = gameState.handNumber;
+    if (human && human.chips !== lastSyncedChips.current) {
+      lastSyncedChips.current = human.chips;
       updateChips(human.chips);
     }
   }, [gameState, screen, user, updateChips]);
@@ -215,6 +212,13 @@ function App() {
 
   const handleAction = useCallback(
     (action) => {
+      if (action === 'allin') {
+        const human = getHumanPlayer(gameState);
+        if (!human || !window.confirm(`Vuoi davvero andare all-in con ${human.chips.toLocaleString()} chips?`)) {
+          return;
+        }
+      }
+
       setGameState((s) => {
         if (!s) return s;
         const human = getHumanPlayer(s);
@@ -244,7 +248,7 @@ function App() {
         return withHumanPerspective(next, user);
       });
     },
-    [selectedBet, wallet, persistGameState, user],
+    [selectedBet, wallet, persistGameState, user, gameState],
   );
 
   useEffect(() => {
@@ -351,8 +355,11 @@ function App() {
           onCheck={() => handleAction('check')}
           onCall={() => handleAction('call')}
           onRaise={() => handleAction('raise')}
+          onAllIn={() => handleAction('allin')}
           onFold={() => handleAction('fold')}
           userNametag={user.nametag}
+          roomCode={activeRoom?.code}
+          user={user}
         />
       </main>
     </div>

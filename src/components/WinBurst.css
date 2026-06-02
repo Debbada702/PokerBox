@@ -1,0 +1,74 @@
+.win-burst {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: 44%;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  color: #171103;
+  text-align: center;
+  text-transform: uppercase;
+  background: #f0d15b;
+  border: 2px solid #72540c;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  animation: winBurst 2.2s ease both;
+  pointer-events: none;
+}
+
+.win-burst__label {
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.win-burst__amount {
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  animation: countPop 0.9s steps(8, end) both;
+}
+
+.win-burst--big,
+.win-burst--mega {
+  background: #ffd84f;
+}
+
+.win-burst--mega {
+  border-color: #fff1a5;
+}
+
+@keyframes winBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.58);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+}
+
+@keyframes countPop {
+  from {
+    letter-spacing: 0.18em;
+    filter: blur(2px);
+  }
+  to {
+    letter-spacing: 0;
+    filter: blur(0);
+  }
+}

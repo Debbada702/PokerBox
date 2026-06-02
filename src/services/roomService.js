@@ -11,6 +11,7 @@ export const START_MODES = {
 const ROOMS_KEY = 'pokerbox_rooms';
 const ROOMS_TABLE = 'rooms';
 const ROOM_PLAYERS_TABLE = 'room_players';
+const ROOM_MESSAGES_TABLE = 'room_messages';
 const BOT_NAMES = ['Alex', 'Mia', 'Leo', 'Sara', 'Max', 'Eva'];
 
 function loadRooms() {
@@ -176,6 +177,36 @@ export async function getRoomGameState(code) {
 
   const rooms = loadRooms();
   return rooms[code?.toUpperCase()]?.gameState ?? null;
+}
+
+export async function listRoomMessages(code) {
+  if (!code || code === 'LOCAL') return { ok: true, messages: [] };
+  if (isSupabaseConfigured) return listRoomMessagesSupabase(code);
+
+  const rooms = loadRooms();
+  return { ok: true, messages: rooms[code?.toUpperCase()]?.messages ?? [] };
+}
+
+export async function sendRoomMessage(code, user, text) {
+  if (!code || code === 'LOCAL') return { ok: false, error: 'Chat disponibile solo nelle stanze' };
+  const cleanText = text.trim().slice(0, 180);
+  if (!cleanText) return { ok: false, error: 'Messaggio vuoto' };
+  if (isSupabaseConfigured) return sendRoomMessageSupabase(code, user, cleanText);
+
+  const rooms = loadRooms();
+  const room = rooms[code?.toUpperCase()];
+  if (!room) return { ok: false, error: 'Stanza non trovata' };
+  const message = {
+    id: `${Date.now()}-${user.id}`,
+    userId: user.id,
+    nametag: user.nametag,
+    text: cleanText,
+    createdAt: new Date().toISOString(),
+  };
+  room.messages = [...(room.messages ?? []), message].slice(-40);
+  rooms[room.code] = room;
+  saveRooms(rooms);
+  return { ok: true, messages: room.messages };
 }
 
 export function getRoomFromUrl() {
@@ -441,4 +472,42 @@ async function getRoomGameStateSupabase(code) {
 
   if (error) return null;
   return data?.game_state ?? null;
+}
+
+function messageFromSupabase(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    nametag: row.nametag,
+    text: row.text,
+    createdAt: row.created_at,
+  };
+}
+
+async function listRoomMessagesSupabase(code) {
+  const clean = code?.toUpperCase();
+  if (!clean) return { ok: true, messages: [] };
+
+  const { data, error } = await supabase
+    .from(ROOM_MESSAGES_TABLE)
+    .select('id, user_id, nametag, text, created_at')
+    .eq('room_code', clean)
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  if (error) return { ok: false, error: error.message, messages: [] };
+  return { ok: true, messages: (data ?? []).slice().reverse().map(messageFromSupabase) };
+}
+
+async function sendRoomMessageSupabase(code, user, text) {
+  const clean = code?.toUpperCase();
+  const { error } = await supabase.from(ROOM_MESSAGES_TABLE).insert({
+    room_code: clean,
+    user_id: user.id,
+    nametag: user.nametag,
+    text,
+  });
+
+  if (error) return { ok: false, error: error.message, messages: [] };
+  return listRoomMessagesSupabase(clean);
 }

@@ -118,6 +118,10 @@
   background: linear-gradient(180deg, #d28a34 0%, #823b14 100%);
 }
 
+.actions-bar__btn--allin {
+  background: linear-gradient(180deg, #6d3fd2 0%, #32145f 100%);
+}
+
 .actions-bar__btn--fold {
   background: linear-gradient(180deg, #9c353e 0%, #55151b 100%);
 }
