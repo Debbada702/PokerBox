@@ -16,15 +16,15 @@ export default function RoomLobby({
   onStartGame,
   gameStartingRef,
 }) {
-  const [room, setRoom] = useState(() => getRoom(roomCode));
+  const [room, setRoom] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const isHost = room?.hostId === user.id;
   const inviteLink = buildInviteLink(roomCode);
 
-  const refresh = useCallback(() => {
-    const latest = getRoom(roomCode);
+  const refresh = useCallback(async () => {
+    const latest = await getRoom(roomCode);
     if (!latest) {
       onLeave({ kicked: true, reason: 'La stanza non esiste più' });
       return;
@@ -36,7 +36,7 @@ export default function RoomLobby({
     if (latest.status === 'playing' && latest.startMode) {
       if (!gameStartingRef?.current) {
         gameStartingRef.current = true;
-        onStartGame(latest.startMode);
+        await onStartGame(latest.startMode, latest);
       }
       return;
     }
@@ -58,9 +58,9 @@ export default function RoomLobby({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleKick = (targetId) => {
+  const handleKick = async (targetId) => {
     setError(null);
-    const result = kickPlayer(roomCode, user.id, targetId);
+    const result = await kickPlayer(roomCode, user.id, targetId);
     if (result.ok) {
       setRoom(result.room);
     } else {
@@ -68,7 +68,7 @@ export default function RoomLobby({
     }
   };
 
-  const handleStart = (mode) => {
+  const handleStart = async (mode) => {
     setError(null);
     const check = validateStart(room, mode);
     if (!check.ok) {
@@ -76,7 +76,7 @@ export default function RoomLobby({
       return;
     }
     if (gameStartingRef) gameStartingRef.current = true;
-    onStartGame(mode);
+    await onStartGame(mode, room);
   };
 
   if (!room) {

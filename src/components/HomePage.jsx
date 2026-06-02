@@ -19,6 +19,7 @@ export default function HomePage({
   const [convertAmount, setConvertAmount] = useState('');
   const [convertMsg, setConvertMsg] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [roomLoading, setRoomLoading] = useState(false);
 
   const {
     connected,
@@ -30,17 +31,23 @@ export default function HomePage({
     chipsPerBotti,
   } = wallet;
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     setRoomError(null);
-    const result = createRoom(user);
+    setRoomLoading(true);
+    const result = await createRoom(user);
+    setRoomLoading(false);
     if (result.ok) {
       setCreatedRoom(result);
+    } else {
+      setRoomError(result.error);
     }
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
     setRoomError(null);
-    const result = joinRoom(joinCode, user);
+    setRoomLoading(true);
+    const result = await joinRoom(joinCode, user);
+    setRoomLoading(false);
     if (result.ok) {
       onEnterLobby(result.room);
     } else {
@@ -100,8 +107,8 @@ export default function HomePage({
           <h2>Gioca</h2>
           <p className="home__card-desc">Crea una stanza o unisciti con codice / link invito</p>
 
-          <button type="button" className="home__btn home__btn--primary" onClick={handleCreateRoom}>
-            Crea stanza
+          <button type="button" className="home__btn home__btn--primary" onClick={handleCreateRoom} disabled={roomLoading}>
+            {roomLoading ? 'Creazione...' : 'Crea stanza'}
           </button>
 
           {createdRoom && (
@@ -130,8 +137,8 @@ export default function HomePage({
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               maxLength={6}
             />
-            <button type="button" className="home__btn home__btn--secondary" onClick={handleJoinRoom}>
-              Unisciti
+            <button type="button" className="home__btn home__btn--secondary" onClick={handleJoinRoom} disabled={roomLoading}>
+              {roomLoading ? 'Attendi...' : 'Unisciti'}
             </button>
           </div>
 

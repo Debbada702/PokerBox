@@ -11,18 +11,21 @@ create table if not exists public.players (
 
 alter table public.players enable row level security;
 
+drop policy if exists "players can read own profile" on public.players;
 create policy "players can read own profile"
   on public.players
   for select
   to authenticated
   using (auth.uid() = id);
 
+drop policy if exists "players can insert own profile" on public.players;
 create policy "players can insert own profile"
   on public.players
   for insert
   to authenticated
   with check (auth.uid() = id);
 
+drop policy if exists "players can update own profile" on public.players;
 create policy "players can update own profile"
   on public.players
   for update
@@ -30,3 +33,82 @@ create policy "players can update own profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+create table if not exists public.rooms (
+  code text primary key,
+  host_id uuid not null references auth.users(id) on delete cascade,
+  host_nametag text not null,
+  status text not null default 'waiting',
+  max_seats integer not null default 6,
+  start_mode text,
+  created_at timestamptz not null default now(),
+  started_at timestamptz
+);
+
+create table if not exists public.room_players (
+  room_code text not null references public.rooms(code) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nametag text not null,
+  joined_at timestamptz not null default now(),
+  primary key (room_code, user_id)
+);
+
+alter table public.rooms enable row level security;
+alter table public.room_players enable row level security;
+
+drop policy if exists "authenticated users can read rooms" on public.rooms;
+create policy "authenticated users can read rooms"
+  on public.rooms
+  for select
+  to authenticated
+  using (true);
+
+drop policy if exists "users can create hosted rooms" on public.rooms;
+create policy "users can create hosted rooms"
+  on public.rooms
+  for insert
+  to authenticated
+  with check (auth.uid() = host_id);
+
+drop policy if exists "hosts can update rooms" on public.rooms;
+create policy "hosts can update rooms"
+  on public.rooms
+  for update
+  to authenticated
+  using (auth.uid() = host_id)
+  with check (auth.uid() = host_id);
+
+drop policy if exists "hosts can delete rooms" on public.rooms;
+create policy "hosts can delete rooms"
+  on public.rooms
+  for delete
+  to authenticated
+  using (auth.uid() = host_id);
+
+drop policy if exists "authenticated users can read room players" on public.room_players;
+create policy "authenticated users can read room players"
+  on public.room_players
+  for select
+  to authenticated
+  using (true);
+
+drop policy if exists "users can join as themselves" on public.room_players;
+create policy "users can join as themselves"
+  on public.room_players
+  for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "users can leave or hosts can kick" on public.room_players;
+create policy "users can leave or hosts can kick"
+  on public.room_players
+  for delete
+  to authenticated
+  using (
+    auth.uid() = user_id
+    or exists (
+      select 1
+      from public.rooms
+      where rooms.code = room_players.room_code
+        and rooms.host_id = auth.uid()
+    )
+  );

@@ -1,6 +1,4 @@
-/**
- * Stanze mock — in futuro: SQL + WebSocket.
- */
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 
 export const MAX_SEATS = 6;
 
@@ -11,6 +9,8 @@ export const START_MODES = {
 };
 
 const ROOMS_KEY = 'pokerbox_rooms';
+const ROOMS_TABLE = 'rooms';
+const ROOM_PLAYERS_TABLE = 'room_players';
 const BOT_NAMES = ['Alex', 'Mia', 'Leo', 'Sara', 'Max', 'Eva'];
 
 function loadRooms() {
@@ -28,7 +28,7 @@ function saveRooms(rooms) {
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i += 1) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
@@ -39,14 +39,16 @@ export function buildInviteLink(code) {
   return `${base}?room=${code}`;
 }
 
-export function getRoom(code) {
+export async function getRoom(code) {
   if (!code || code === 'LOCAL') return null;
+  if (isSupabaseConfigured) return getRoomSupabase(code);
   const rooms = loadRooms();
   return rooms[code.toUpperCase()] ?? null;
 }
 
-/** @returns {{ ok: boolean, room?: object, link?: string, error?: string }} */
-export function createRoom(host) {
+export async function createRoom(host) {
+  if (isSupabaseConfigured) return createRoomSupabase(host);
+
   const rooms = loadRooms();
   let code = generateCode();
   while (rooms[code]) code = generateCode();
@@ -72,20 +74,17 @@ export function createRoom(host) {
   return { ok: true, room, link: buildInviteLink(code) };
 }
 
-/** @returns {{ ok: boolean, room?: object, error?: string }} */
-export function joinRoom(code, user) {
+export async function joinRoom(code, user) {
+  if (isSupabaseConfigured) return joinRoomSupabase(code, user);
+
   const clean = code.trim().toUpperCase();
   if (!clean) return { ok: false, error: 'Inserisci un codice stanza' };
 
   const rooms = loadRooms();
   const room = rooms[clean];
   if (!room) return { ok: false, error: 'Stanza non trovata' };
-  if (room.status === 'playing') {
-    return { ok: false, error: 'Partita già in corso' };
-  }
-  if (room.players.length >= room.maxSeats) {
-    return { ok: false, error: 'Stanza piena' };
-  }
+  if (room.status === 'playing') return { ok: false, error: 'Partita gia in corso' };
+  if (room.players.length >= room.maxSeats) return { ok: false, error: 'Stanza piena' };
 
   if (!room.players.some((p) => p.id === user.id)) {
     room.players.push({
@@ -100,7 +99,9 @@ export function joinRoom(code, user) {
   return { ok: true, room: { ...room } };
 }
 
-export function leaveRoom(code, userId) {
+export async function leaveRoom(code, userId) {
+  if (isSupabaseConfigured) return leaveRoomSupabase(code, userId);
+
   const rooms = loadRooms();
   const room = rooms[code?.toUpperCase()];
   if (!room) return null;
@@ -123,12 +124,13 @@ export function leaveRoom(code, userId) {
   return room;
 }
 
-/** @returns {{ ok: boolean, room?: object, error?: string }} */
-export function kickPlayer(code, hostId, targetId) {
+export async function kickPlayer(code, hostId, targetId) {
+  if (isSupabaseConfigured) return kickPlayerSupabase(code, hostId, targetId);
+
   const rooms = loadRooms();
   const room = rooms[code?.toUpperCase()];
   if (!room) return { ok: false, error: 'Stanza non trovata' };
-  if (room.hostId !== hostId) return { ok: false, error: 'Solo l\'host può espellere' };
+  if (room.hostId !== hostId) return { ok: false, error: 'Solo l host puo espellere' };
   if (targetId === hostId) return { ok: false, error: 'Non puoi espellere te stesso' };
 
   const exists = room.players.some((p) => p.id === targetId);
@@ -140,7 +142,9 @@ export function kickPlayer(code, hostId, targetId) {
   return { ok: true, room: { ...room } };
 }
 
-export function setRoomPlaying(code, startMode) {
+export async function setRoomPlaying(code, startMode) {
+  if (isSupabaseConfigured) return setRoomPlayingSupabase(code, startMode);
+
   const rooms = loadRooms();
   const room = rooms[code?.toUpperCase()];
   if (!room) return null;
@@ -157,12 +161,6 @@ export function getRoomFromUrl() {
   return params.get('room')?.toUpperCase() ?? null;
 }
 
-/**
- * Costruisce il roster per il motore di gioco.
- * @param {object} room
- * @param {string} startMode - START_MODES
- * @param {object} currentUser - utente locale { id, nametag, chips }
- */
 export function buildRoster(room, startMode, currentUser) {
   const roster = [];
 
@@ -173,7 +171,7 @@ export function buildRoster(room, startMode, currentUser) {
       isHuman: true,
       isBot: false,
     });
-    for (let i = 0; i < MAX_SEATS - 1; i++) {
+    for (let i = 0; i < MAX_SEATS - 1; i += 1) {
       roster.push({
         userId: null,
         nametag: BOT_NAMES[i],
@@ -191,9 +189,7 @@ export function buildRoster(room, startMode, currentUser) {
     isBot: false,
   }));
 
-  if (startMode === START_MODES.HUMANS_ONLY) {
-    return humans;
-  }
+  if (startMode === START_MODES.HUMANS_ONLY) return humans;
 
   if (startMode === START_MODES.FILL_BOTS) {
     roster.push(...humans);
@@ -205,7 +201,7 @@ export function buildRoster(room, startMode, currentUser) {
         isHuman: false,
         isBot: true,
       });
-      botIdx++;
+      botIdx += 1;
     }
     return roster;
   }
@@ -216,20 +212,175 @@ export function buildRoster(room, startMode, currentUser) {
 export function validateStart(room, startMode) {
   const count = room.players.length;
 
-  if (startMode === START_MODES.ALL_BOTS) {
-    return { ok: true };
-  }
+  if (startMode === START_MODES.ALL_BOTS) return { ok: true };
   if (startMode === START_MODES.HUMANS_ONLY) {
-    if (count < 2) {
-      return { ok: false, error: 'Servono almeno 2 giocatori (solo persone reali)' };
-    }
+    if (count < 2) return { ok: false, error: 'Servono almeno 2 giocatori (solo persone reali)' };
     return { ok: true };
   }
   if (startMode === START_MODES.FILL_BOTS) {
-    if (count < 1) {
-      return { ok: false, error: 'Serve almeno 1 giocatore' };
-    }
+    if (count < 1) return { ok: false, error: 'Serve almeno 1 giocatore' };
     return { ok: true };
   }
-  return { ok: false, error: 'Modalità non valida' };
+  return { ok: false, error: 'Modalita non valida' };
+}
+
+function roomFromSupabase(row) {
+  if (!row) return null;
+  const players = (row.room_players ?? [])
+    .slice()
+    .sort((a, b) => new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime())
+    .map((p) => ({
+      id: p.user_id,
+      nametag: p.nametag,
+      joinedAt: p.joined_at,
+    }));
+
+  return {
+    code: row.code,
+    hostId: row.host_id,
+    hostNametag: row.host_nametag,
+    createdAt: row.created_at,
+    status: row.status,
+    maxSeats: row.max_seats ?? MAX_SEATS,
+    startMode: row.start_mode,
+    startedAt: row.started_at,
+    players,
+  };
+}
+
+async function getRoomSupabase(code) {
+  const clean = code?.toUpperCase();
+  if (!clean) return null;
+
+  const { data, error } = await supabase
+    .from(ROOMS_TABLE)
+    .select(`
+      code,
+      host_id,
+      host_nametag,
+      created_at,
+      status,
+      max_seats,
+      start_mode,
+      started_at,
+      room_players(user_id, nametag, joined_at)
+    `)
+    .eq('code', clean)
+    .maybeSingle();
+
+  if (error) return null;
+  return roomFromSupabase(data);
+}
+
+async function createRoomSupabase(host) {
+  let code = generateCode();
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { error } = await supabase.from(ROOMS_TABLE).insert({
+      code,
+      host_id: host.id,
+      host_nametag: host.nametag,
+      status: 'waiting',
+      max_seats: MAX_SEATS,
+    });
+
+    if (!error) {
+      const { error: playerError } = await supabase.from(ROOM_PLAYERS_TABLE).insert({
+        room_code: code,
+        user_id: host.id,
+        nametag: host.nametag,
+      });
+      if (playerError) return { ok: false, error: playerError.message };
+
+      return { ok: true, room: await getRoomSupabase(code), link: buildInviteLink(code) };
+    }
+
+    if (error.code !== '23505') return { ok: false, error: error.message };
+    code = generateCode();
+  }
+
+  return { ok: false, error: 'Impossibile creare una stanza unica' };
+}
+
+async function joinRoomSupabase(code, user) {
+  const clean = code.trim().toUpperCase();
+  if (!clean) return { ok: false, error: 'Inserisci un codice stanza' };
+
+  const room = await getRoomSupabase(clean);
+  if (!room) return { ok: false, error: 'Stanza non trovata' };
+  if (room.status === 'playing') return { ok: false, error: 'Partita gia in corso' };
+  if (room.players.length >= room.maxSeats && !room.players.some((p) => p.id === user.id)) {
+    return { ok: false, error: 'Stanza piena' };
+  }
+
+  if (!room.players.some((p) => p.id === user.id)) {
+    const { error } = await supabase.from(ROOM_PLAYERS_TABLE).insert({
+      room_code: clean,
+      user_id: user.id,
+      nametag: user.nametag,
+    });
+    if (error && error.code !== '23505') return { ok: false, error: error.message };
+  }
+
+  return { ok: true, room: await getRoomSupabase(clean) };
+}
+
+async function leaveRoomSupabase(code, userId) {
+  const clean = code?.toUpperCase();
+  if (!clean) return null;
+
+  await supabase.from(ROOM_PLAYERS_TABLE).delete().eq('room_code', clean).eq('user_id', userId);
+
+  const room = await getRoomSupabase(clean);
+  if (!room) return null;
+
+  if (room.players.length === 0) {
+    await supabase.from(ROOMS_TABLE).delete().eq('code', clean);
+    return null;
+  }
+
+  if (room.hostId === userId) {
+    const nextHost = room.players[0];
+    await supabase
+      .from(ROOMS_TABLE)
+      .update({ host_id: nextHost.id, host_nametag: nextHost.nametag })
+      .eq('code', clean);
+    return getRoomSupabase(clean);
+  }
+
+  return room;
+}
+
+async function kickPlayerSupabase(code, hostId, targetId) {
+  const clean = code?.toUpperCase();
+  const room = await getRoomSupabase(clean);
+  if (!room) return { ok: false, error: 'Stanza non trovata' };
+  if (room.hostId !== hostId) return { ok: false, error: 'Solo l host puo espellere' };
+  if (targetId === hostId) return { ok: false, error: 'Non puoi espellere te stesso' };
+
+  const { error } = await supabase
+    .from(ROOM_PLAYERS_TABLE)
+    .delete()
+    .eq('room_code', clean)
+    .eq('user_id', targetId);
+  if (error) return { ok: false, error: error.message };
+
+  return { ok: true, room: await getRoomSupabase(clean) };
+}
+
+async function setRoomPlayingSupabase(code, startMode) {
+  const clean = code?.toUpperCase();
+  if (!clean) return null;
+
+  const { error } = await supabase
+    .from(ROOMS_TABLE)
+    .update({
+      status: 'playing',
+      start_mode: startMode,
+      started_at: new Date().toISOString(),
+    })
+    .eq('code', clean);
+
+  if (error) return null;
+  return getRoomSupabase(clean);
 }

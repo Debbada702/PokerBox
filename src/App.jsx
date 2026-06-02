@@ -78,12 +78,12 @@ function App() {
   }, [user]);
 
   const startGameFromLobby = useCallback(
-    (startMode) => {
+    async (startMode, lobbyRoom = null) => {
       if (!user || !activeRoom?.code || gameStartingRef.current === 'done') return;
-      const fresh = joinRoom(activeRoom.code, user);
+      const fresh = lobbyRoom ? { ok: true, room: lobbyRoom } : await joinRoom(activeRoom.code, user);
       const room = fresh.ok ? fresh.room : activeRoom;
       const roster = buildRoster(room, startMode, user);
-      setRoomPlaying(activeRoom.code, startMode);
+      await setRoomPlaying(activeRoom.code, startMode);
       gameStartingRef.current = 'done';
       setActiveRoom({ ...room, startMode });
       setGameState(createGameFromRoster(roster, user));
@@ -96,7 +96,7 @@ function App() {
   const leaveLobby = useCallback(
     (info) => {
       if (activeRoom?.code && activeRoom.code !== 'LOCAL' && user) {
-        leaveRoom(activeRoom.code, user.id);
+        void leaveRoom(activeRoom.code, user.id);
       }
       setActiveRoom(null);
       setLobbyNotice(info?.reason ?? info?.message ?? null);
@@ -111,7 +111,7 @@ function App() {
       if (human) updateChips(human.chips);
     }
     if (activeRoom?.code && activeRoom.code !== 'LOCAL' && user) {
-      leaveRoom(activeRoom.code, user.id);
+      void leaveRoom(activeRoom.code, user.id);
     }
     setGameState(null);
     setActiveRoom(null);
@@ -130,8 +130,9 @@ function App() {
     const code = getRoomFromUrl();
     if (code) {
       urlRoomHandled.current = true;
-      const result = joinRoom(code, user);
-      if (result.ok) setTimeout(() => enterLobby(result.room), 0);
+      void joinRoom(code, user).then((result) => {
+        if (result.ok) setTimeout(() => enterLobby(result.room), 0);
+      });
     }
   }, [user, enterLobby]);
 
