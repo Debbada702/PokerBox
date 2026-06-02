@@ -1,0 +1,93 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(180deg, rgba(3, 5, 8, 0.36), rgba(0, 0, 0, 0.12)),
+    #06080c;
+}
+
+.app--game {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a9aaa;
+}
+
+.app__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background:
+    linear-gradient(180deg, rgba(16, 20, 27, 0.86), rgba(3, 5, 8, 0.82)),
+    rgba(0, 0, 0, 0.58);
+  border-bottom: 1px solid rgba(224, 185, 63, 0.24);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app__back {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  color: #c8d0d8;
+  cursor: pointer;
+}
+
+.app__back:hover {
+  border-color: #d4af37;
+  color: #ffd700;
+}
+
+.app__room-code {
+  font-size: 0.75rem;
+  color: #9ec8ff;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.app__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app__user-tag {
+  font-weight: 700;
+  color: #ffd700;
+  font-size: 1rem;
+}
+
+.app__user-chips {
+  font-size: 0.85rem;
+  color: #7ee87e;
+  font-variant-numeric: tabular-nums;
+}
+
+.app__main {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  min-height: 0;
+}
+
+.app--game .app__main {
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .app--game {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+}

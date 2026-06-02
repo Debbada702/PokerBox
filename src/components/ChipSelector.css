@@ -1,0 +1,88 @@
+.chip-selector {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.65rem 0.85rem;
+  background:
+    linear-gradient(180deg, rgba(18, 24, 31, 0.78), rgba(4, 7, 11, 0.84)),
+    rgba(0, 0, 0, 0.48);
+  border-radius: 8px;
+  border: 1px solid rgba(244, 213, 129, 0.2);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.chip-selector--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.chip-selector__label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8a9aaa;
+  margin-bottom: 0.5rem;
+}
+
+.chip-selector__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.chip-selector__chip {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 3px dashed rgba(255, 255, 255, 0.52);
+  border-radius: 50%;
+  background: var(--chip-color);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow:
+    inset 0 3px 4px rgba(255, 255, 255, 0.32),
+    inset 0 -5px 5px rgba(0, 0, 0, 0.25),
+    0 5px 10px rgba(0, 0, 0, 0.45);
+}
+
+.chip-selector__chip:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.05);
+}
+
+.chip-selector__chip--active {
+  transform: translateY(-2px) scale(1.12);
+  border-style: solid;
+  border-color: #ffd700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.chip-selector__chip-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.chip-selector__chip[style*='#e8e8e8'] .chip-selector__chip-inner,
+.chip-selector__chip[style*='#e8e8e8'] .chip-selector__chip-inner {
+  color: #222;
+}
+
+.chip-selector__hint {
+  margin: 0.5rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #7a8a9a;
+}
+
+.chip-selector__hint strong {
+  color: #ffd700;
+}

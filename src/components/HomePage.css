@@ -1,0 +1,275 @@
+.home {
+  min-height: 100vh;
+  padding: 1rem 1.25rem 2rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.home__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.home__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.home__logo {
+  font-size: 2rem;
+  color: #d4af37;
+}
+
+.home__brand h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #faf6eb;
+}
+
+.home__user-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.home__nametag {
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.home__chips {
+  color: #7ee87e;
+  font-variant-numeric: tabular-nums;
+}
+
+.home__logout {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  background: rgba(80, 30, 30, 0.5);
+  border: 1px solid rgba(200, 80, 80, 0.4);
+  border-radius: 6px;
+  color: #ffb0b0;
+  cursor: pointer;
+}
+
+.home__grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .home__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.home__card {
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(22, 28, 38, 0.95), rgba(10, 14, 20, 0.98));
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.home__card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+  color: #faf6eb;
+}
+
+.home__card-desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  color: #8a9aaa;
+  line-height: 1.5;
+}
+
+.home__card-desc small {
+  color: #d4af37;
+}
+
+.home__btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.home__btn:hover {
+  transform: translateY(-1px);
+}
+
+.home__btn--primary {
+  background: linear-gradient(180deg, #3d9a52, #1e6b32);
+  color: #fff;
+}
+
+.home__btn--secondary {
+  background: linear-gradient(180deg, #4a6a8a, #2a4560);
+  color: #fff;
+}
+
+.home__btn--gold {
+  background: linear-gradient(180deg, #e8c547, #a08020);
+  color: #1a1408;
+}
+
+.home__btn--botti {
+  background: linear-gradient(180deg, #6b2d8a, #4a1a60);
+  color: #fff;
+  border: 1px solid rgba(200, 120, 255, 0.4);
+}
+
+.home__btn--ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #9aa8b8;
+}
+
+.home__btn--small {
+  font-size: 0.75rem;
+  padding: 0.5rem;
+}
+
+.home__room-created {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.home__code {
+  font-size: 1.4rem;
+  letter-spacing: 0.2em;
+  color: #ffd700;
+}
+
+.home__room-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.home__room-actions .home__btn {
+  flex: 1;
+  margin: 0;
+}
+
+.home__divider {
+  text-align: center;
+  margin: 1rem 0;
+  font-size: 0.75rem;
+  color: #5a6a7a;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.home__join {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.home__join input {
+  flex: 1;
+  padding: 0.65rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #fff;
+}
+
+.home__wallet-connected {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.home__wallet-addr {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+  color: #9ec89e;
+}
+
+.home__botti-bal {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.75rem;
+  background: rgba(107, 45, 138, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(180, 100, 220, 0.3);
+}
+
+.home__botti-bal strong {
+  font-size: 1.25rem;
+  color: #e8b0ff;
+}
+
+.home__convert {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.home__convert input {
+  padding: 0.65rem;
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #fff;
+}
+
+.home__error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #ff8a8a;
+}
+
+.home__success {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7ee87e;
+}
+
+.home__notice {
+  margin: 0 0 1rem;
+  padding: 0.65rem 1rem;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  color: #e8c547;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.home__footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.65rem;
+  color: #4a5a6a;
+}

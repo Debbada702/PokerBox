@@ -1,0 +1,46 @@
+.community-cards {
+  text-align: center;
+  padding: 0.32rem 0.42rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.community-cards__label {
+  margin: 0 0 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.community-cards__row {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  min-height: 68px;
+  align-items: center;
+}
+
+.community-cards__slot {
+  transition: transform 0.3s ease;
+}
+
+.community-cards__slot--dealt {
+  animation: boardFlip 0.56s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes boardFlip {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) rotateY(88deg) scale(0.82);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(2px) rotateY(-8deg) scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0) scale(1);
+  }
+}
