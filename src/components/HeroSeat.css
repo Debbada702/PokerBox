@@ -1,7 +1,7 @@
 .hero-seat {
   position: relative;
   width: 100%;
-  max-width: 760px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding: 0.72rem 0.9rem;
+  padding: 0.62rem 0.82rem;
   background:
     linear-gradient(180deg, rgba(27, 35, 45, 0.96) 0%, rgba(6, 10, 15, 0.98) 100%),
     rgba(9, 13, 18, 0.95);
@@ -26,8 +26,8 @@
 }
 
 .hero-seat__avatar {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -56,7 +56,7 @@
 }
 
 .hero-seat__name {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #faf6eb;
   letter-spacing: 0.02em;
@@ -106,7 +106,7 @@
 }
 
 .hero-seat__chips {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #ffd700;
   font-variant-numeric: tabular-nums;
@@ -131,7 +131,7 @@
   display: flex;
   gap: 0;
   flex-shrink: 0;
-  min-width: 138px;
+  min-width: 118px;
   justify-content: center;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .hero-seat__cards .playing-card:last-child {
-  margin-left: -16px;
+  margin-left: -12px;
   transform: rotate(4deg);
 }
 

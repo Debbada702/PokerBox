@@ -156,6 +156,28 @@ export async function setRoomPlaying(code, startMode) {
   return room;
 }
 
+export async function saveRoomGameState(code, gameState) {
+  if (!code || code === 'LOCAL') return { ok: true };
+  if (isSupabaseConfigured) return saveRoomGameStateSupabase(code, gameState);
+
+  const rooms = loadRooms();
+  const room = rooms[code?.toUpperCase()];
+  if (!room) return { ok: false, error: 'Stanza non trovata' };
+  room.gameState = gameState;
+  room.gameUpdatedAt = new Date().toISOString();
+  rooms[room.code] = room;
+  saveRooms(rooms);
+  return { ok: true, room };
+}
+
+export async function getRoomGameState(code) {
+  if (!code || code === 'LOCAL') return null;
+  if (isSupabaseConfigured) return getRoomGameStateSupabase(code);
+
+  const rooms = loadRooms();
+  return rooms[code?.toUpperCase()]?.gameState ?? null;
+}
+
 export function getRoomFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get('room')?.toUpperCase() ?? null;
@@ -244,6 +266,8 @@ function roomFromSupabase(row) {
     maxSeats: row.max_seats ?? MAX_SEATS,
     startMode: row.start_mode,
     startedAt: row.started_at,
+    gameState: row.game_state,
+    gameUpdatedAt: row.game_updated_at,
     players,
   };
 }
@@ -263,6 +287,8 @@ async function getRoomSupabase(code) {
       max_seats,
       start_mode,
       started_at,
+      game_state,
+      game_updated_at,
       room_players(user_id, nametag, joined_at)
     `)
     .eq('code', clean)
@@ -383,4 +409,36 @@ async function setRoomPlayingSupabase(code, startMode) {
 
   if (error) return null;
   return getRoomSupabase(clean);
+}
+
+async function saveRoomGameStateSupabase(code, gameState) {
+  const clean = code?.toUpperCase();
+  if (!clean) return { ok: false, error: 'Codice stanza mancante' };
+
+  const { data, error } = await supabase
+    .from(ROOMS_TABLE)
+    .update({
+      game_state: gameState,
+      game_updated_at: new Date().toISOString(),
+    })
+    .eq('code', clean)
+    .select('code')
+    .single();
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, room: data };
+}
+
+async function getRoomGameStateSupabase(code) {
+  const clean = code?.toUpperCase();
+  if (!clean) return null;
+
+  const { data, error } = await supabase
+    .from(ROOMS_TABLE)
+    .select('game_state')
+    .eq('code', clean)
+    .maybeSingle();
+
+  if (error) return null;
+  return data?.game_state ?? null;
 }

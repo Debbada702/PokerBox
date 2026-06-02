@@ -88,6 +88,17 @@ export function createGameFromRoster(roster, humanProfile = null) {
   return baseTableState(players);
 }
 
+export function withHumanPerspective(state, user) {
+  if (!state || !user) return state;
+  return {
+    ...state,
+    players: state.players.map((player) => ({
+      ...player,
+      isHuman: !player.isBot && player.userId === user.id,
+    })),
+  };
+}
+
 function pushLog(state, entry) {
   const full = { id: ++logId, timestamp: Date.now(), ...entry };
   return {
@@ -360,9 +371,11 @@ export function dealHand(state) {
     holeCards: [holeDraw.drawn[i * 2], holeDraw.drawn[i * 2 + 1]],
   }));
 
-  const sbIndex = getNextActivePlayer(players, dealerIndex);
+  const activeCount = players.filter((p) => p.status === 'active').length;
+  const isHeadsUp = activeCount === 2;
+  const sbIndex = isHeadsUp ? dealerIndex : getNextActivePlayer(players, dealerIndex);
   const bbIndex = getNextActivePlayer(players, sbIndex);
-  const firstToAct = getNextActionablePlayer(players, bbIndex);
+  const firstToAct = isHeadsUp ? sbIndex : getNextActionablePlayer(players, bbIndex);
 
   let next = {
     ...state,

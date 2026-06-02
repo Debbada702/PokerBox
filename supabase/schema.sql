@@ -40,9 +40,14 @@ create table if not exists public.rooms (
   status text not null default 'waiting',
   max_seats integer not null default 6,
   start_mode text,
+  game_state jsonb,
   created_at timestamptz not null default now(),
-  started_at timestamptz
+  started_at timestamptz,
+  game_updated_at timestamptz
 );
+
+alter table public.rooms add column if not exists game_state jsonb;
+alter table public.rooms add column if not exists game_updated_at timestamptz;
 
 create table if not exists public.room_players (
   room_code text not null references public.rooms(code) on delete cascade,
@@ -74,8 +79,24 @@ create policy "hosts can update rooms"
   on public.rooms
   for update
   to authenticated
-  using (auth.uid() = host_id)
-  with check (auth.uid() = host_id);
+  using (
+    auth.uid() = host_id
+    or exists (
+      select 1
+      from public.room_players
+      where room_players.room_code = rooms.code
+        and room_players.user_id = auth.uid()
+    )
+  )
+  with check (
+    auth.uid() = host_id
+    or exists (
+      select 1
+      from public.room_players
+      where room_players.room_code = rooms.code
+        and room_players.user_id = auth.uid()
+    )
+  );
 
 drop policy if exists "hosts can delete rooms" on public.rooms;
 create policy "hosts can delete rooms"

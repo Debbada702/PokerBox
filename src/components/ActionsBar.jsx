@@ -11,6 +11,7 @@ const ACTIONS = [
 export default function ActionsBar({
   phase,
   onDeal,
+  canDeal = true,
   onCheck,
   onCall,
   onRaise,
@@ -53,7 +54,7 @@ export default function ActionsBar({
       <div className="actions-bar__buttons">
         {ACTIONS.map(({ id, label, icon, variant, showWhen }) => {
           const isDeal = id === 'deal';
-          const dealOnly = isDeal && showWhen?.includes(phase);
+          const dealOnly = isDeal && canDeal && showWhen?.includes(phase);
           const actionsDisabled = disabled || !inHand;
           const btnDisabled = isDeal ? !dealOnly : actionsDisabled;
 

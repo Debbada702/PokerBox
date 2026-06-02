@@ -16,6 +16,7 @@ export default function PokerTable({
   selectedBet,
   onSelectBet,
   onDeal,
+  canDeal = true,
   onCheck,
   onCall,
   onRaise,
@@ -110,6 +111,13 @@ export default function PokerTable({
       </div>
 
       <footer className="poker-room__footer">
+        <div className={`poker-room__turn-status ${humanTurn ? 'poker-room__turn-status--you' : ''}`}>
+          {phase === 'idle' || phase === 'showdown'
+            ? 'Mano conclusa: premi Deal per continuare'
+            : humanTurn
+              ? 'E il tuo turno'
+              : `Turno di ${activePlayer?.name ?? 'giocatore'}`}
+        </div>
         <HeroSeat
           player={local?.player}
           isActiveTurn={humanTurn}
@@ -124,6 +132,7 @@ export default function PokerTable({
         <ActionsBar
           phase={phase}
           onDeal={onDeal}
+          canDeal={canDeal}
           onCheck={onCheck}
           onCall={onCall}
           onRaise={onRaise}

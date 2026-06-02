@@ -1,13 +1,13 @@
 .community-cards {
   text-align: center;
-  padding: 0.32rem 0.42rem;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.12);
+  padding: 0.28rem 0.38rem;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.14);
 }
 
 .community-cards__label {
-  margin: 0 0 0.4rem;
-  font-size: 0.6rem;
+  margin: 0 0 0.28rem;
+  font-size: 0.56rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -16,9 +16,9 @@
 
 .community-cards__row {
   display: flex;
-  gap: 7px;
+  gap: 6px;
   justify-content: center;
-  min-height: 68px;
+  min-height: 62px;
   align-items: center;
 }
 

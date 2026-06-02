@@ -6,6 +6,7 @@ import {
   playerAction,
   getRandomBotAction,
   getHumanPlayer,
+  withHumanPerspective,
   PHASES,
   BIG_BLIND,
 } from './game/pokerEngine.js';
@@ -15,6 +16,8 @@ import {
   leaveRoom,
   buildRoster,
   setRoomPlaying,
+  getRoomGameState,
+  saveRoomGameState,
 } from './services/roomService.js';
 import PokerTable from './components/PokerTable.jsx';
 import AuthScreen from './components/AuthScreen.jsx';
@@ -51,6 +54,10 @@ function App() {
   const lastSyncedHand = useRef(0);
   const urlRoomHandled = useRef(false);
   const gameStartingRef = useRef(false);
+  const sharedSaveRef = useRef(false);
+
+  const isSharedRoom = activeRoom?.code && activeRoom.code !== 'LOCAL';
+  const isRoomHost = isSharedRoom && activeRoom?.hostId === user?.id;
 
   const handleChipsFromBotti = useCallback(
     (chipsAdded) => {
@@ -82,11 +89,18 @@ function App() {
       if (!user || !activeRoom?.code || gameStartingRef.current === 'done') return;
       const fresh = lobbyRoom ? { ok: true, room: lobbyRoom } : await joinRoom(activeRoom.code, user);
       const room = fresh.ok ? fresh.room : activeRoom;
-      const roster = buildRoster(room, startMode, user);
-      await setRoomPlaying(activeRoom.code, startMode);
+      let nextGame = room.gameState ?? await getRoomGameState(activeRoom.code);
+
+      if (!nextGame && room.hostId === user.id) {
+        const roster = buildRoster(room, startMode, user);
+        nextGame = createGameFromRoster(roster, user);
+        await saveRoomGameState(activeRoom.code, nextGame);
+        await setRoomPlaying(activeRoom.code, startMode);
+      }
+
       gameStartingRef.current = 'done';
       setActiveRoom({ ...room, startMode });
-      setGameState(createGameFromRoster(roster, user));
+      setGameState(withHumanPerspective(nextGame ?? createGameFromRoster(buildRoster(room, startMode, user), user), user));
       setScreen('game');
       lastSyncedHand.current = 0;
     },
@@ -156,7 +170,7 @@ function App() {
         return {
           ...state,
           players: state.players.map((player) =>
-            player.isHuman ? { ...player, name: user.nametag } : player,
+            player.isHuman ? { ...player, name: user.nametag } : { ...player, isHuman: !player.isBot && player.userId === user.id },
           ),
         };
       });
@@ -164,20 +178,61 @@ function App() {
     return () => clearTimeout(id);
   }, [screen, user]);
 
+  useEffect(() => {
+    if (!isSharedRoom || screen !== 'game' || !user) return undefined;
+
+    const id = setInterval(async () => {
+      const remote = await getRoomGameState(activeRoom.code);
+      if (!remote) return;
+      if (sharedSaveRef.current) {
+        sharedSaveRef.current = false;
+        return;
+      }
+      setGameState(withHumanPerspective(remote, user));
+    }, 900);
+
+    return () => clearInterval(id);
+  }, [isSharedRoom, screen, user, activeRoom?.code]);
+
+  const persistGameState = useCallback(
+    async (next) => {
+      if (!isSharedRoom || !activeRoom?.code) return;
+      sharedSaveRef.current = true;
+      await saveRoomGameState(activeRoom.code, next);
+    },
+    [isSharedRoom, activeRoom],
+  );
+
   const handleDeal = useCallback(() => {
-    setGameState((s) => dealHand(s));
-  }, []);
+    setGameState((s) => {
+      if (!s) return s;
+      if (isSharedRoom && !isRoomHost) return s;
+      const next = dealHand(s);
+      void persistGameState(next);
+      return withHumanPerspective(next, user);
+    });
+  }, [isSharedRoom, isRoomHost, persistGameState, user]);
 
   const handleAction = useCallback(
     (action) => {
       setGameState((s) => {
+        if (!s) return s;
         const human = getHumanPlayer(s);
         const humanIndex = s.players.findIndex((p) => p.isHuman);
+        if (humanIndex !== s.activePlayerIndex) return s;
         const toCall = human ? Math.max(0, s.currentBet - human.currentBet) : 0;
         const opts = { betAmount: selectedBet };
 
-        if (action === 'check' && toCall === 0) return playerAction(s, 'check', opts);
-        if (action === 'call' && toCall === 0) return playerAction(s, 'check', opts);
+        if (action === 'check' && toCall === 0) {
+          const next = playerAction(s, 'check', opts);
+          void persistGameState(next);
+          return withHumanPerspective(next, user);
+        }
+        if (action === 'call' && toCall === 0) {
+          const next = playerAction(s, 'check', opts);
+          void persistGameState(next);
+          return withHumanPerspective(next, user);
+        }
 
         const next = playerAction(s, action, opts);
         if (human && s.activePlayerIndex === humanIndex) {
@@ -185,10 +240,11 @@ function App() {
             wallet.placeBet(action === 'raise' ? toCall + selectedBet : toCall);
           }
         }
-        return next;
+        void persistGameState(next);
+        return withHumanPerspective(next, user);
       });
     },
-    [selectedBet, wallet],
+    [selectedBet, wallet, persistGameState, user],
   );
 
   useEffect(() => {
@@ -202,6 +258,8 @@ function App() {
       phase === PHASES.SHOWDOWN ||
       !active ||
       active.isHuman ||
+      (!active.isBot && isSharedRoom) ||
+      (active.isBot && isSharedRoom && !isRoomHost) ||
       active.status !== 'active'
     ) {
       return undefined;
@@ -210,12 +268,14 @@ function App() {
     botTimerRef.current = setTimeout(() => {
       setGameState((s) => {
         const { action, betAmount } = getRandomBotAction(s);
-        return playerAction(s, action, { betAmount });
+        const next = playerAction(s, action, { betAmount });
+        void persistGameState(next);
+        return withHumanPerspective(next, user);
       });
     }, 900);
 
     return () => clearTimeout(botTimerRef.current);
-  }, [gameState, screen]);
+  }, [gameState, screen, isSharedRoom, isRoomHost, persistGameState, user]);
 
   if (!isAuthenticated) {
     return (
@@ -265,7 +325,7 @@ function App() {
     <div className="app app--game">
       <header className="app__topbar">
         <button type="button" className="app__back" onClick={leaveGame}>
-          ← Menu
+          {'<- Menu'}
         </button>
         <div className="app__user">
           {activeRoom?.code && activeRoom.code !== 'LOCAL' && (
@@ -287,6 +347,7 @@ function App() {
           selectedBet={selectedBet}
           onSelectBet={setSelectedBet}
           onDeal={handleDeal}
+          canDeal={!isSharedRoom || isRoomHost}
           onCheck={() => handleAction('check')}
           onCall={() => handleAction('call')}
           onRaise={() => handleAction('raise')}
