@@ -50,7 +50,9 @@ export default function PokerTable({
 
   const latest = actionLog?.[0] ?? null;
   const activePlayer = players[activePlayerIndex];
+  const dealerPlayer = players.find((player) => player.isDealer);
   const phaseLabel = getPhaseLabel(phase);
+  const hasRoomChat = roomCode && roomCode !== 'LOCAL';
 
   return (
     <div className="poker-room">
@@ -68,91 +70,106 @@ export default function PokerTable({
         </div>
       </header>
 
-      <ActionFeed entries={actionLog ?? []} latest={latest} />
+      <div className={`poker-room__arena ${hasRoomChat ? '' : 'poker-room__arena--chatless'}`}>
+        <aside className="poker-room__side poker-room__side--history">
+          <ActionFeed
+            entries={actionLog ?? []}
+            handNumber={handNumber}
+            dealerName={dealerPlayer?.name}
+          />
+        </aside>
 
-      <div className="poker-room__table-zone">
-        <div className="poker-table">
-          <div className="poker-table__rail" />
-          <div className="poker-table__felt">
-            <div className="poker-table__racetrack" aria-hidden />
-            <div className="poker-table__phase-strip">
-              <span>{phaseLabel}</span>
-              <strong>Mano #{handNumber}</strong>
-            </div>
-            <div className="poker-table__logo-felt">PB</div>
-            <WinBurst latest={latest} human={human} />
-
-            {opponents.map((entry, i) => (
-              <PlayerSeat
-                key={entry.player.id}
-                player={entry.player}
-                position={getOpponentSeatPosition(i, opponents.length)}
-                isActiveTurn={
-                  entry.engineIndex === activePlayerIndex && phase !== 'showdown'
-                }
-                showCards={showCards}
-              />
-            ))}
-
-            <div className="poker-table__center">
-              {activePlayer && phase !== 'idle' && phase !== 'showdown' && (
-                <div className="poker-table__turn-banner">
-                  <span>Turno</span>
-                  <strong>{activePlayer.name}</strong>
+        <main className="poker-room__play">
+          <div className="poker-room__table-zone">
+            <div className="poker-table">
+              <div className="poker-table__rail" />
+              <div className="poker-table__felt">
+                <div className="poker-table__racetrack" aria-hidden />
+                <div className="poker-table__phase-strip">
+                  <span>{phaseLabel}</span>
+                  <strong>Mano #{handNumber}</strong>
                 </div>
-              )}
-              <CommunityCards cards={communityCards} phase={phaseLabel} />
-              <div className="poker-table__pot">
-                <span className="poker-table__chip-stack" aria-hidden>
-                  <span className="poker-table__chip poker-table__chip--red" />
-                  <span className="poker-table__chip poker-table__chip--gold" />
-                  <span className="poker-table__chip poker-table__chip--blue" />
-                </span>
-                <span className="poker-table__pot-label">Pot totale</span>
-                <span className="poker-table__pot-value">{pot.toLocaleString()}</span>
+                <div className="poker-table__logo-felt">PB</div>
+                <WinBurst latest={latest} human={human} />
+
+                {opponents.map((entry, i) => (
+                  <PlayerSeat
+                    key={entry.player.id}
+                    player={entry.player}
+                    position={getOpponentSeatPosition(i, opponents.length)}
+                    isActiveTurn={
+                      entry.engineIndex === activePlayerIndex && phase !== 'showdown'
+                    }
+                    showCards={showCards}
+                  />
+                ))}
+
+                <div className="poker-table__center">
+                  {activePlayer && phase !== 'idle' && phase !== 'showdown' && (
+                    <div className="poker-table__turn-banner">
+                      <span>Turno</span>
+                      <strong>{activePlayer.name}</strong>
+                    </div>
+                  )}
+                  <CommunityCards cards={communityCards} phase={phaseLabel} />
+                  <div className="poker-table__pot">
+                    <span className="poker-table__chip-stack" aria-hidden>
+                      <span className="poker-table__chip poker-table__chip--red" />
+                      <span className="poker-table__chip poker-table__chip--gold" />
+                      <span className="poker-table__chip poker-table__chip--blue" />
+                    </span>
+                    <span className="poker-table__pot-label">Pot totale</span>
+                    <span className="poker-table__pot-value">{pot.toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <footer className="poker-room__footer">
-        <div className={`poker-room__turn-status ${humanTurn ? 'poker-room__turn-status--you' : ''}`}>
-          {phase === 'idle' || phase === 'showdown'
-            ? 'Mano conclusa: premi Deal per continuare'
-            : humanTurn
-              ? 'E il tuo turno'
-              : `Turno di ${activePlayer?.name ?? 'giocatore'}`}
-        </div>
-        <HeroSeat
-          player={local?.player}
-          isActiveTurn={humanTurn}
-          showCards={showCards}
-          phase={phase}
-        />
-        <ChipSelector
-          selected={selectedBet}
-          onSelect={onSelectBet}
-          disabled={!humanTurn}
-        />
-        <ActionsBar
-          phase={phase}
-          onDeal={onDeal}
-          canDeal={canDeal}
-          onCheck={onCheck}
-          onCall={onCall}
-          onRaise={onRaise}
-          onAllIn={onAllIn}
-          onFold={onFold}
-          disabled={!humanTurn}
-          pot={pot}
-          currentBet={currentBet}
-          toCall={toCall}
-          selectedBet={selectedBet}
-          humanChips={human?.chips}
-        />
-        <GameChat roomCode={roomCode} user={user} />
-      </footer>
+          <footer className="poker-room__footer">
+            <div className={`poker-room__turn-status ${humanTurn ? 'poker-room__turn-status--you' : ''}`}>
+              {phase === 'idle' || phase === 'showdown'
+                ? 'Mano conclusa: premi Deal per continuare'
+                : humanTurn
+                  ? 'E il tuo turno'
+                  : `Turno di ${activePlayer?.name ?? 'giocatore'}`}
+            </div>
+            <HeroSeat
+              player={local?.player}
+              isActiveTurn={humanTurn}
+              showCards={showCards}
+              phase={phase}
+            />
+            <ChipSelector
+              selected={selectedBet}
+              onSelect={onSelectBet}
+              disabled={!humanTurn}
+            />
+            <ActionsBar
+              phase={phase}
+              onDeal={onDeal}
+              canDeal={canDeal}
+              onCheck={onCheck}
+              onCall={onCall}
+              onRaise={onRaise}
+              onAllIn={onAllIn}
+              onFold={onFold}
+              disabled={!humanTurn}
+              pot={pot}
+              currentBet={currentBet}
+              toCall={toCall}
+              selectedBet={selectedBet}
+              humanChips={human?.chips}
+            />
+          </footer>
+        </main>
+
+        {hasRoomChat && (
+          <aside className="poker-room__side poker-room__side--chat">
+            <GameChat roomCode={roomCode} user={user} />
+          </aside>
+        )}
+      </div>
     </div>
   );
 }

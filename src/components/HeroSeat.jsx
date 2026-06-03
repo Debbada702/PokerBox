@@ -4,8 +4,22 @@ import './HeroSeat.css';
 export default function HeroSeat({ player, isActiveTurn, showCards, phase }) {
   if (!player) return null;
 
-  const { name, holeCards, status, chips, currentBet, isDealer } = player;
+  const {
+    name,
+    holeCards,
+    status,
+    chips,
+    currentBet,
+    isDealer,
+    isSmallBlind,
+    isBigBlind,
+  } = player;
   const cardsVisible = showCards || (phase !== 'idle' && holeCards.length > 0);
+  const markers = [
+    isDealer && { key: 'dealer', label: 'D', title: 'Dealer' },
+    isSmallBlind && { key: 'sb', label: 'SB', title: 'Small blind' },
+    isBigBlind && { key: 'bb', label: 'BB', title: 'Big blind' },
+  ].filter(Boolean);
 
   return (
     <div
@@ -18,7 +32,19 @@ export default function HeroSeat({ player, isActiveTurn, showCards, phase }) {
         <div className="hero-seat__body">
           <div className="hero-seat__meta">
             <span className="hero-seat__name">{name}</span>
-            {isDealer && <span className="hero-seat__dealer">D</span>}
+            {markers.length > 0 && (
+              <span className="hero-seat__markers">
+                {markers.map((marker) => (
+                  <span
+                    key={marker.key}
+                    className={`hero-seat__marker hero-seat__marker--${marker.key}`}
+                    title={marker.title}
+                  >
+                    {marker.label}
+                  </span>
+                ))}
+              </span>
+            )}
             <span className={`hero-seat__status hero-seat__status--${status}`}>
               {status === 'active' && 'In gioco'}
               {status === 'folded' && 'Fold'}

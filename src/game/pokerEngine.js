@@ -115,6 +115,8 @@ function resetPlayersForHand(players, dealerIndex) {
     currentBet: 0,
     committed: 0,
     isDealer: i === dealerIndex,
+    isSmallBlind: false,
+    isBigBlind: false,
   }));
 }
 
@@ -145,7 +147,7 @@ function evaluateWinners(players, communityCards) {
 export function getNextActivePlayer(players, fromIndex) {
   const len = players.length;
   for (let step = 1; step <= len; step += 1) {
-    const idx = (fromIndex + step) % len;
+    const idx = (fromIndex - step + len) % len;
     if (players[idx].status === 'active') return idx;
   }
   return fromIndex;
@@ -154,7 +156,7 @@ export function getNextActivePlayer(players, fromIndex) {
 function getNextActionablePlayer(players, fromIndex) {
   const len = players.length;
   for (let step = 1; step <= len; step += 1) {
-    const idx = (fromIndex + step) % len;
+    const idx = (fromIndex - step + len) % len;
     if (players[idx].status === 'active' && players[idx].chips > 0) return idx;
   }
   return -1;
@@ -361,12 +363,12 @@ function advancePhase(state) {
 
 export function dealHand(state) {
   const playerCount = state.players.length;
-  const dealerIndex = (state.dealerIndex + 1) % playerCount;
+  const dealerIndex = (state.dealerIndex - 1 + playerCount) % playerCount;
   let deck = shuffleDeck(createDeck());
   const holeDraw = drawCards(deck, playerCount * 2);
   deck = holeDraw.remaining;
 
-  const players = resetPlayersForHand(state.players, dealerIndex).map((p, i) => ({
+  let players = resetPlayersForHand(state.players, dealerIndex).map((p, i) => ({
     ...p,
     holeCards: [holeDraw.drawn[i * 2], holeDraw.drawn[i * 2 + 1]],
   }));
@@ -376,6 +378,11 @@ export function dealHand(state) {
   const sbIndex = isHeadsUp ? dealerIndex : getNextActivePlayer(players, dealerIndex);
   const bbIndex = getNextActivePlayer(players, sbIndex);
   const firstToAct = isHeadsUp ? sbIndex : getNextActionablePlayer(players, bbIndex);
+  players = players.map((p, i) => ({
+    ...p,
+    isSmallBlind: i === sbIndex,
+    isBigBlind: i === bbIndex,
+  }));
 
   let next = {
     ...state,

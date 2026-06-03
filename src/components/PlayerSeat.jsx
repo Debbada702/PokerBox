@@ -7,8 +7,22 @@ export default function PlayerSeat({
   isActiveTurn,
   showCards,
 }) {
-  const { name, holeCards, status, chips, currentBet, isDealer } = player;
+  const {
+    name,
+    holeCards,
+    status,
+    chips,
+    currentBet,
+    isDealer,
+    isSmallBlind,
+    isBigBlind,
+  } = player;
   const cardsVisible = showCards && holeCards.length > 0;
+  const markers = [
+    isDealer && { key: 'dealer', label: 'D', title: 'Dealer' },
+    isSmallBlind && { key: 'sb', label: 'SB', title: 'Small blind' },
+    isBigBlind && { key: 'bb', label: 'BB', title: 'Big blind' },
+  ].filter(Boolean);
 
   return (
     <div
@@ -16,7 +30,19 @@ export default function PlayerSeat({
         isActiveTurn ? 'player-seat--turn' : ''
       }`}
     >
-      {isDealer && <span className="player-seat__dealer" title="Dealer">D</span>}
+      {markers.length > 0 && (
+        <div className="player-seat__markers">
+          {markers.map((marker) => (
+            <span
+              key={marker.key}
+              className={`player-seat__marker player-seat__marker--${marker.key}`}
+              title={marker.title}
+            >
+              {marker.label}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="player-seat__cards">
         <PlayingCard card={holeCards[0]} hidden={!cardsVisible} size="sm" delay={0} />
         <PlayingCard card={holeCards[1]} hidden={!cardsVisible} size="sm" delay={60} />
