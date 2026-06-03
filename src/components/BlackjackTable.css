@@ -60,6 +60,44 @@
 .blackjack-table__dealer {
   max-width: 360px;
   margin: 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+}
+
+.blackjack-table__shoe {
+  position: relative;
+  width: 78px;
+  height: 48px;
+}
+
+.blackjack-table__shoe span {
+  position: absolute;
+  width: 52px;
+  height: 38px;
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 7px),
+    linear-gradient(145deg, #152f61, #5f1730);
+  border: 2px solid #f6efe4;
+  box-shadow: inset 0 0 0 3px #b9902d, 0 8px 16px rgba(0, 0, 0, 0.36);
+}
+
+.blackjack-table__shoe span:nth-child(1) {
+  left: 4px;
+  top: 10px;
+  transform: rotate(-8deg);
+}
+
+.blackjack-table__shoe span:nth-child(2) {
+  left: 18px;
+  top: 5px;
+}
+
+.blackjack-table__shoe span:nth-child(3) {
+  left: 31px;
+  top: 10px;
+  transform: rotate(8deg);
 }
 
 .blackjack-table__players {
@@ -102,6 +140,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+.blackjack-player__chips {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: #f0d15b;
+  font-size: 0.72rem;
+  font-weight: 1000;
+}
+
+.blackjack-player__chips span {
+  width: 22px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.75);
+  background: #a92838;
+  box-shadow: 6px -2px 0 #d0a526, 0 5px 10px rgba(0, 0, 0, 0.32);
+}
+
+.blackjack-player__chips span:nth-child(2) {
+  margin-left: -14px;
+  background: #275fa8;
+  transform: translateY(-4px);
+}
+
 .blackjack-hand {
   display: grid;
   gap: 0.45rem;
@@ -126,8 +190,32 @@
   justify-content: center;
 }
 
-.blackjack-hand__cards .playing-card + .playing-card {
+.blackjack-hand__card-slot {
+  display: inline-flex;
+  animation: blackjackDealToPlayer 0.62s cubic-bezier(0.2, 0.8, 0.22, 1) both;
+  animation-delay: calc(var(--card-index) * 90ms);
+}
+
+.blackjack-hand__card-slot--dealer {
+  animation-name: blackjackDealToDealer;
+}
+
+.blackjack-hand__card-slot--reveal:not(.blackjack-hand__card-slot--hidden) {
+  animation-name: blackjackDealToPlayer, blackjackReveal;
+  animation-duration: 0.62s, 0.46s;
+  animation-delay: calc(var(--card-index) * 90ms), 120ms;
+}
+
+.blackjack-hand__card-slot + .blackjack-hand__card-slot {
   margin-left: -12px;
+}
+
+.blackjack-hand__card-slot--hidden {
+  animation-name: blackjackDealToDealer;
+}
+
+.blackjack-hand__card-slot--hidden .playing-card {
+  box-shadow: 0 0 0 3px rgba(240, 209, 91, 0.18), 0 10px 20px rgba(0, 0, 0, 0.38);
 }
 
 .blackjack-player__result {
@@ -182,6 +270,64 @@
   gap: 0.55rem;
 }
 
+.blackjack-bets {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.blackjack-bets__chips {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.blackjack-bets__chip {
+  min-height: 46px;
+  color: #10140d;
+  font-size: 0.78rem;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  background:
+    radial-gradient(circle at 50% 50%, #fff7d0 0 18%, transparent 19%),
+    #d0a526;
+  border: 3px dashed rgba(255, 255, 255, 0.78);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.34);
+}
+
+.blackjack-bets__chip--active {
+  outline: 3px solid #f0d15b;
+  transform: translateY(-2px);
+}
+
+.blackjack-bets__chip:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.blackjack-bets__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.blackjack-bets__actions button {
+  min-height: 38px;
+  color: #f8fbff;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: #172334;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.blackjack-bets__actions button:first-child {
+  color: #171103;
+  background: #f0d15b;
+}
+
 .blackjack-actions__buttons button {
   min-height: 42px;
   color: #f8fbff;
@@ -225,7 +371,46 @@
 
 @media (max-width: 620px) {
   .blackjack-table__players,
-  .blackjack-actions__buttons {
+  .blackjack-actions__buttons,
+  .blackjack-bets__chips,
+  .blackjack-bets__actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes blackjackDealToPlayer {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -210px, 0) rotate(-16deg) scale(0.72);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, 6px, 0) rotate(3deg) scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes blackjackDealToDealer {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -40px, 0) rotate(10deg) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes blackjackReveal {
+  from {
+    filter: brightness(0.75);
+    transform: rotateY(88deg);
+  }
+  to {
+    filter: brightness(1);
+    transform: rotateY(0);
   }
 }

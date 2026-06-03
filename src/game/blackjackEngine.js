@@ -100,6 +100,7 @@ export function createBlackjackGameFromRoster(roster, humanProfile = null) {
       status: 'waiting',
       result: null,
       payout: 0,
+      betDecision: 'pending',
       isHuman: !!seat.isHuman,
       isBot: false,
     }));
@@ -119,31 +120,89 @@ export function createBlackjackGameFromRoster(roster, humanProfile = null) {
   });
 }
 
-export function dealBlackjackHand(rawState) {
+export function startBlackjackBettingRound(rawState) {
   const seated = rawState.players.filter((player) => player.chips > 0);
   if (seated.length === 0) return log(rawState, { type: 'info', text: 'Servono chips per giocare blackjack' });
 
+  return log(normalize({
+    ...rawState,
+    stage: 'betting',
+    players: seated.map((player, index) => ({
+      ...player,
+      id: index,
+      hand: [],
+      bet: 0,
+      status: 'betting',
+      result: null,
+      payout: 0,
+      betDecision: 'pending',
+    })),
+    dealer: { hand: [], score: 0, hidden: true },
+    deck: [],
+    pot: 0,
+    handNumber: rawState.handNumber + 1,
+    actionIndex: 0,
+    actionLog: [],
+    bankDelta: 0,
+    bankTransferId: null,
+  }), { type: 'phase', text: 'Apertura puntate blackjack' });
+}
+
+export function blackjackBet(rawState, userId, amount) {
+  const state = normalize(rawState);
+  if (state.stage !== 'betting') return state;
+
+  const players = state.players.map((player) => {
+    if (player.userId !== userId || player.betDecision !== 'pending') return player;
+    const bet = Math.min(Math.max(0, Math.trunc(amount)), player.chips);
+    return {
+      ...player,
+      bet,
+      chips: player.chips - bet,
+      status: bet > 0 ? 'ready' : 'skipped',
+      betDecision: bet > 0 ? 'bet' : 'skip',
+    };
+  });
+
+  const next = normalize({
+    ...state,
+    players,
+    pot: players.reduce((sum, player) => sum + player.bet, 0),
+  });
+
+  if (players.every((player) => player.betDecision !== 'pending')) {
+    return dealBlackjackHand(next);
+  }
+
+  const bettor = players.find((player) => player.userId === userId);
+  return log(next, {
+    type: bettor?.bet > 0 ? 'bet' : 'check',
+    playerName: bettor?.name,
+    text: bettor?.bet > 0 ? `punta ${bettor.bet}` : 'salta la mano',
+    amount: bettor?.bet ?? 0,
+  });
+}
+
+export function dealBlackjackHand(rawState) {
+  const activeBettors = rawState.players.filter((player) => player.bet > 0 && player.status !== 'skipped');
+  if (activeBettors.length === 0) return log({ ...rawState, stage: 'idle', phase: 'idle' }, { type: 'info', text: 'Nessuna puntata: mano annullata' });
+
   const deck = shuffleDeck(createDeck());
-  let players = seated.map((player, index) => ({
+  let players = rawState.players.map((player, index) => ({
     ...player,
     id: index,
     hand: [],
-    bet: Math.min(BLACKJACK_BET, player.chips),
-    status: 'playing',
+    status: player.bet > 0 ? 'playing' : 'skipped',
     result: null,
     payout: 0,
   }));
   let dealer = { hand: [], score: 0, hidden: true };
-  let pot = 0;
-
-  players = players.map((player) => {
-    const bet = Math.min(BLACKJACK_BET, player.chips);
-    pot += bet;
-    return { ...player, chips: player.chips - bet, bet };
-  });
+  const pot = players.reduce((sum, player) => sum + player.bet, 0);
 
   for (let round = 0; round < 2; round += 1) {
-    players = players.map((player) => ({ ...player, hand: [...player.hand, draw(deck)] }));
+    players = players.map((player) => (
+      player.bet > 0 ? { ...player, hand: [...player.hand, draw(deck)] } : player
+    ));
     dealer = { ...dealer, hand: [...dealer.hand, draw(deck)] };
   }
 
@@ -161,8 +220,7 @@ export function dealBlackjackHand(rawState) {
     deck,
     pot,
     actionIndex: first >= 0 ? first : 0,
-    handNumber: rawState.handNumber + 1,
-    actionLog: [],
+    handNumber: rawState.handNumber,
     bankDelta: 0,
     bankTransferId: null,
   });
@@ -246,6 +304,10 @@ function settleBlackjack(rawState) {
   let bankDelta = 0;
 
   const players = rawState.players.map((player) => {
+    if (player.bet <= 0) {
+      return { ...player, status: 'skipped', result: 'skip', payout: 0 };
+    }
+
     const score = scoreHand(player.hand);
     const blackjack = isBlackjack(player.hand);
     let result;

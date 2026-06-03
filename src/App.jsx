@@ -12,7 +12,8 @@ import {
 } from './game/pokerEngine.js';
 import {
   createBlackjackGameFromRoster,
-  dealBlackjackHand,
+  startBlackjackBettingRound,
+  blackjackBet,
   blackjackAction,
   HOUSE_PLAYER_ID,
 } from './game/blackjackEngine.js';
@@ -295,11 +296,20 @@ function App() {
     setGameState((s) => {
       if (!s) return s;
       if (isSharedRoom && !isRoomHost) return s;
-      const next = dealBlackjackHand(s);
+      const next = startBlackjackBettingRound(s);
       void persistGameState(next);
       return withGamePerspective(next, user);
     });
   }, [isSharedRoom, isRoomHost, persistGameState, user]);
+
+  const handleBlackjackBet = useCallback((amount) => {
+    setGameState((s) => {
+      if (!s || !user) return s;
+      const next = blackjackBet(s, user.id, amount);
+      void persistGameState(next);
+      return withGamePerspective(next, user);
+    });
+  }, [persistGameState, user]);
 
   const handleBlackjackAction = useCallback((action) => {
     setGameState((s) => {
@@ -567,6 +577,10 @@ function App() {
             roomCode={activeRoom?.code}
             canDeal={!isSharedRoom || isRoomHost}
             onDeal={handleBlackjackDeal}
+            selectedBet={selectedBet}
+            onSelectBet={setSelectedBet}
+            onBet={() => handleBlackjackBet(selectedBet)}
+            onSkip={() => handleBlackjackBet(0)}
             onHit={() => handleBlackjackAction('hit')}
             onStand={() => handleBlackjackAction('stand')}
             onDouble={() => handleBlackjackAction('double')}
