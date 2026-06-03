@@ -292,20 +292,13 @@ function App() {
     });
   }, [isSharedRoom, isRoomHost, persistGameState, user]);
 
-  const handleBlackjackDeal = useCallback(() => {
-    setGameState((s) => {
-      if (!s) return s;
-      if (isSharedRoom && !isRoomHost) return s;
-      const next = startBlackjackBettingRound(s);
-      void persistGameState(next);
-      return withGamePerspective(next, user);
-    });
-  }, [isSharedRoom, isRoomHost, persistGameState, user]);
-
   const handleBlackjackBet = useCallback((amount) => {
     setGameState((s) => {
       if (!s || !user) return s;
-      const next = blackjackBet(s, user.id, amount);
+      const bettingState = (s.phase === 'idle' || s.phase === 'showdown')
+        ? startBlackjackBettingRound(s)
+        : s;
+      const next = blackjackBet(bettingState, user.id, amount);
       void persistGameState(next);
       return withGamePerspective(next, user);
     });
@@ -575,11 +568,7 @@ function App() {
             gameState={gameState}
             user={user}
             roomCode={activeRoom?.code}
-            canDeal={!isSharedRoom || isRoomHost}
-            onDeal={handleBlackjackDeal}
-            selectedBet={selectedBet}
-            onSelectBet={setSelectedBet}
-            onBet={() => handleBlackjackBet(selectedBet)}
+            onBet={(amount) => handleBlackjackBet(amount)}
             onSkip={() => handleBlackjackBet(0)}
             onHit={() => handleBlackjackAction('hit')}
             onStand={() => handleBlackjackAction('stand')}

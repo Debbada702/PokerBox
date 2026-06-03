@@ -136,6 +136,10 @@ export default function HomePage({
 
           {roomError && <p className="home__error">{roomError}</p>}
 
+          <button type="button" className="home__btn home__btn--gold" onClick={() => onNavigate('publicRooms')}>
+            Stanze pubbliche {isBlackjack ? 'Blackjack' : 'Poker'}
+          </button>
+
           {!isBlackjack && (
             <button type="button" className="home__btn home__btn--ghost" onClick={onQuickPlay}>
               Partita rapida vs bot

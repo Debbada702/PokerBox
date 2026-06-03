@@ -281,29 +281,87 @@
   gap: 0.4rem;
 }
 
-.blackjack-bets__chip {
-  min-height: 46px;
+.blackjack-chip {
+  width: 52px;
+  height: 52px;
+  display: inline-grid;
+  place-items: center;
   color: #10140d;
   font-size: 0.78rem;
   font-weight: 1000;
   font-variant-numeric: tabular-nums;
   background:
-    radial-gradient(circle at 50% 50%, #fff7d0 0 18%, transparent 19%),
-    #d0a526;
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.92) 0 18%, transparent 19%),
+    var(--chip-color);
   border: 3px dashed rgba(255, 255, 255, 0.78);
   border-radius: 50%;
-  cursor: pointer;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.34);
 }
 
-.blackjack-bets__chip--active {
-  outline: 3px solid #f0d15b;
-  transform: translateY(-2px);
+.blackjack-chip--white { --chip-color: #f2f4f8; color: #111923; }
+.blackjack-chip--red { --chip-color: #d3424f; color: #fff; }
+.blackjack-chip--blue { --chip-color: #2d73c8; color: #fff; }
+.blackjack-chip--green { --chip-color: #30a95a; color: #fff; }
+.blackjack-chip--black { --chip-color: #151923; color: #fff; }
+.blackjack-chip--purple { --chip-color: #7c43d6; color: #fff; }
+.blackjack-chip--gold { --chip-color: #d0a526; color: #10140d; }
+
+.blackjack-bets__chip {
+  cursor: pointer;
+  margin: 0 auto;
+  transition: transform 0.12s ease;
+}
+
+.blackjack-bets__chip:hover:not(:disabled) {
+  transform: translateY(-3px);
 }
 
 .blackjack-bets__chip:disabled {
   opacity: 0.32;
   cursor: not-allowed;
+}
+
+.blackjack-bet-stack {
+  width: fit-content;
+  min-width: 106px;
+  margin: 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.45rem;
+  color: #f0d15b;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(240, 209, 91, 0.22);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.blackjack-bet-stack:disabled,
+.blackjack-bet-stack--locked {
+  cursor: default;
+}
+
+.blackjack-bet-stack__chips {
+  position: relative;
+  width: 96px;
+  height: 38px;
+  display: block;
+}
+
+.blackjack-bet-stack__chips .blackjack-chip {
+  position: absolute;
+  left: calc(var(--stack-index) * 10px);
+  bottom: calc(var(--stack-index) * 2px);
+  width: 34px;
+  height: 34px;
+  font-size: 0.58rem;
+  animation: blackjackChipDrop 0.22s ease both;
+}
+
+.blackjack-bet-stack strong {
+  font-size: 0.72rem;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
 }
 
 .blackjack-bets__actions {
@@ -412,5 +470,16 @@
   to {
     filter: brightness(1);
     transform: rotateY(0);
+  }
+}
+
+@keyframes blackjackChipDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
