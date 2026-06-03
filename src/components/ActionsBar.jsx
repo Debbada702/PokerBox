@@ -38,7 +38,7 @@ export default function ActionsBar({
     }
     if (id === 'call' && toCall > 0) return `Call ${toCall}`;
     if (id === 'call' && toCall === 0) return 'Check';
-    if (id === 'raise') return `Raise +${selectedBet}`;
+    if (id === 'raise') return currentBet > 0 ? `Raise +${selectedBet}` : `Bet ${selectedBet}`;
     return base;
   };
 

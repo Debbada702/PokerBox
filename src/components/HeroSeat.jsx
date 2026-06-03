@@ -48,6 +48,7 @@ export default function HeroSeat({ player, isActiveTurn, showCards, phase }) {
             )}
             <span className={`hero-seat__status hero-seat__status--${status}`}>
               {status === 'active' && 'In gioco'}
+              {status === 'allin' && 'All-in'}
               {status === 'folded' && 'Fold'}
               {status === 'winner' && 'Vincitore'}
               {status === 'waiting' && 'In attesa'}

@@ -236,7 +236,11 @@ function App() {
         const maxRaise = human ? Math.max(0, human.chips - toCall) : 0;
         const minRaise = Math.min(s.bettingRound?.minRaise ?? s.bigBlind ?? BIG_BLIND, Math.max(1, maxRaise));
         const raiseAmount = Math.min(Math.max(selectedBet, minRaise), Math.max(minRaise, maxRaise));
-        const opts = { betAmount: raiseAmount };
+        const engineAction = action === 'raise' && s.currentBet === 0 ? 'bet' : action;
+        const opts = {
+          betAmount: raiseAmount,
+          raiseTo: s.currentBet === 0 ? raiseAmount : s.currentBet + raiseAmount,
+        };
 
         if (action === 'check' && toCall === 0) {
           const next = playerAction(s, 'check', opts);
@@ -249,7 +253,7 @@ function App() {
           return withHumanPerspective(next, user);
         }
 
-        const next = playerAction(s, action, opts);
+        const next = playerAction(s, engineAction, opts);
         if (human && s.activePlayerIndex === humanIndex) {
           if (action === 'raise' || action === 'allin' || (action === 'call' && toCall > 0)) {
             const amount = action === 'allin'
@@ -323,8 +327,10 @@ function App() {
 
     botTimerRef.current = setTimeout(() => {
       setGameState((s) => {
-        const { action, betAmount } = getRandomBotAction(s);
-        const next = playerAction(s, action, { betAmount });
+        const { action, betAmount, raiseTo } = getRandomBotAction(s);
+        const engineAction = action === 'raise' && s.currentBet === 0 ? 'bet' : action;
+        const fallbackRaiseTo = s.currentBet === 0 ? (betAmount ?? BIG_BLIND) : (s.currentBet + (betAmount ?? BIG_BLIND));
+        const next = playerAction(s, engineAction, { betAmount, raiseTo: raiseTo ?? fallbackRaiseTo });
         void persistGameState(next);
         return withHumanPerspective(next, user);
       });
