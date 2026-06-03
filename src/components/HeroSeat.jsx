@@ -20,6 +20,7 @@ export default function HeroSeat({ player, isActiveTurn, showCards, phase }) {
     isSmallBlind && { key: 'sb', label: 'SB', title: 'Small blind' },
     isBigBlind && { key: 'bb', label: 'BB', title: 'Big blind' },
   ].filter(Boolean);
+  const blindLabel = isSmallBlind ? 'Sei small blind' : isBigBlind ? 'Sei big blind' : '';
 
   return (
     <div
@@ -59,6 +60,7 @@ export default function HeroSeat({ player, isActiveTurn, showCards, phase }) {
               <span className="hero-seat__bet">Puntata {currentBet}</span>
             )}
           </div>
+          {blindLabel && <p className="hero-seat__blind-role">{blindLabel}</p>}
         </div>
         <div className="hero-seat__cards">
           <PlayingCard card={holeCards[0]} hidden={!cardsVisible} size="xl" delay={0} />

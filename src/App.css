@@ -86,6 +86,75 @@
   overflow: hidden;
 }
 
+.app-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.app-confirm__panel {
+  width: min(100%, 380px);
+  display: grid;
+  gap: 0.78rem;
+  padding: 1rem;
+  color: #edf4ff;
+  background:
+    linear-gradient(180deg, rgba(23, 31, 42, 0.98), rgba(5, 8, 13, 0.98)),
+    #080d13;
+  border: 1px solid rgba(240, 209, 91, 0.42);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
+}
+
+.app-confirm__panel h2,
+.app-confirm__panel p {
+  margin: 0;
+}
+
+.app-confirm__panel h2 {
+  color: #f0d15b;
+  font-size: 1.1rem;
+}
+
+.app-confirm__panel p {
+  color: #b7c8da;
+  line-height: 1.4;
+}
+
+.app-confirm__panel strong {
+  color: #fff7d4;
+  font-size: 1.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-confirm__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.app-confirm__actions button {
+  min-height: 40px;
+  color: #dce7f2;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.app-confirm__actions .app-confirm__confirm {
+  color: #171103;
+  background: #f0d15b;
+  border-color: #705516;
+}
+
 @media (max-width: 760px) {
   .app--game {
     height: auto;

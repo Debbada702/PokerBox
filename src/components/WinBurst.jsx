@@ -11,6 +11,19 @@ function classifyWin(amount, reference) {
 export default function WinBurst({ latest, human }) {
   if (!latest || latest.type !== 'win' || !latest.amount) return null;
 
+  const winnerIds = latest.winnerIds ?? [];
+  const humanWon = winnerIds.length > 0
+    ? winnerIds.includes(human?.id)
+    : latest.playerName === human?.name;
+  if (!humanWon) {
+    return (
+      <div key={latest.id} className="win-burst win-burst--loss" aria-live="polite">
+        <span className="win-burst__label">Hai perso</span>
+        <strong className="win-burst__amount">-{(human?.committed ?? 0).toLocaleString()}</strong>
+      </div>
+    );
+  }
+
   const tier = classifyWin(latest.amount, human?.committed || human?.chips || 1);
   const label = {
     small: 'Small win',

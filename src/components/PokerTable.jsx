@@ -24,7 +24,6 @@ export default function PokerTable({
   onRaise,
   onAllIn,
   onFold,
-  userNametag,
   roomCode,
   user,
 }) {
@@ -36,11 +35,15 @@ export default function PokerTable({
     currentBet,
     activePlayerIndex,
     actionLog,
+    handHistory,
     handNumber,
   } = gameState;
 
   const human = getHumanPlayer(gameState);
   const toCall = human ? Math.max(0, currentBet - human.currentBet) : 0;
+  const maxRaise = human ? Math.max(0, human.chips - toCall) : 0;
+  const minRaise = Math.min(gameState.bettingRound?.minRaise ?? gameState.bigBlind ?? 20, Math.max(1, maxRaise));
+  const humanBlindRole = human?.isSmallBlind ? 'small' : human?.isBigBlind ? 'big' : null;
   const { local, opponents } = splitLocalAndOpponents(players);
   const showCards = phase === 'showdown';
   const humanTurn =
@@ -56,26 +59,13 @@ export default function PokerTable({
 
   return (
     <div className="poker-room">
-      <header className="poker-room__header">
-        <div className="poker-room__brand">
-          <span className="poker-room__logo">PB</span>
-          <h1 className="poker-room__title">PokerBox</h1>
-        </div>
-        <div className="poker-room__stats">
-          {userNametag && (
-            <span className="poker-room__stat poker-room__stat--user">{userNametag}</span>
-          )}
-          <span className="poker-room__stat">Mano #{handNumber}</span>
-          <span className="poker-room__stat poker-room__stat--phase">{phaseLabel}</span>
-        </div>
-      </header>
-
       <div className={`poker-room__arena ${hasRoomChat ? '' : 'poker-room__arena--chatless'}`}>
         <aside className="poker-room__side poker-room__side--history">
           <ActionFeed
             entries={actionLog ?? []}
             handNumber={handNumber}
             dealerName={dealerPlayer?.name}
+            handHistory={handHistory ?? []}
           />
         </aside>
 
@@ -144,6 +134,9 @@ export default function PokerTable({
               selected={selectedBet}
               onSelect={onSelectBet}
               disabled={!humanTurn}
+              min={minRaise}
+              max={maxRaise}
+              toCall={toCall}
             />
             <ActionsBar
               phase={phase}
@@ -160,6 +153,7 @@ export default function PokerTable({
               toCall={toCall}
               selectedBet={selectedBet}
               humanChips={human?.chips}
+              humanBlindRole={humanBlindRole}
             />
           </footer>
         </main>

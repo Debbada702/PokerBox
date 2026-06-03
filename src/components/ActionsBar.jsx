@@ -24,11 +24,18 @@ export default function ActionsBar({
   toCall,
   selectedBet,
   humanChips,
+  humanBlindRole,
 }) {
   const inHand = phase !== 'idle' && phase !== 'showdown';
   const handlers = { deal: onDeal, check: onCheck, call: onCall, raise: onRaise, allin: onAllIn, fold: onFold };
 
   const getLabel = (id, base) => {
+    if (id === 'call' && humanBlindRole === 'small') {
+      return toCall > 0 ? `Small blind +${toCall}` : 'Small blind';
+    }
+    if (id === 'call' && humanBlindRole === 'big') {
+      return toCall > 0 ? `Big blind +${toCall}` : 'Big blind';
+    }
     if (id === 'call' && toCall > 0) return `Call ${toCall}`;
     if (id === 'call' && toCall === 0) return 'Check';
     if (id === 'raise') return `Raise +${selectedBet}`;

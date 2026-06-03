@@ -41,6 +41,7 @@ function baseTableState(players) {
     activePlayerIndex: 0,
     dealerIndex: 0,
     actionLog: [],
+    handHistory: [],
     winnerId: null,
     handNumber: 0,
     smallBlind: SMALL_BLIND,
@@ -103,7 +104,7 @@ function pushLog(state, entry) {
   const full = { id: ++logId, timestamp: Date.now(), ...entry };
   return {
     ...state,
-    actionLog: [full, ...(state.actionLog ?? [])].slice(0, 20),
+    actionLog: [full, ...(state.actionLog ?? [])],
   };
 }
 
@@ -302,6 +303,7 @@ function finishShowdown(state, deck, communityCards) {
     {
       type: 'win',
       playerName: winnerName,
+      winnerIds: result.winnerIds,
       text: isSplit
         ? `split pot - ${result.description}`
         : `vince allo showdown - ${result.description}`,
@@ -396,16 +398,26 @@ export function dealHand(state) {
     dealerIndex,
     winnerId: null,
     handNumber: state.handNumber + 1,
+    handHistory: [
+      {
+        handNumber: state.handNumber + 1,
+        dealerName: players[dealerIndex]?.name ?? '?',
+        smallBlindName: players[sbIndex]?.name ?? '?',
+        bigBlindName: players[bbIndex]?.name ?? '?',
+        timestamp: Date.now(),
+      },
+      ...(state.handHistory ?? []),
+    ],
     bettingRound: emptyBettingRound(state.bigBlind),
   };
 
   next = postBlind(next, sbIndex, state.smallBlind, `small blind (${state.smallBlind})`);
   next = postBlind(next, bbIndex, state.bigBlind, `big blind (${state.bigBlind})`);
 
-  const human = next.players.find((p) => p.isHuman);
+  const firstPlayer = next.players[next.activePlayerIndex];
   return pushLog(next, {
     type: 'info',
-    text: human ? `${human.name}, a te la prima azione` : 'Nuova mano - preflop',
+    text: firstPlayer ? `${firstPlayer.name}, prima azione` : 'Nuova mano - preflop',
   });
 }
 
@@ -510,7 +522,13 @@ export function playerAction(state, action, options = {}) {
         currentBet: 0,
         bettingRound: emptyBettingRound(state.bigBlind),
       },
-      { type: 'win', playerName: winner.name, text: 'vince - tutti fold', amount: potWon },
+      {
+        type: 'win',
+        playerName: winner.name,
+        winnerIds: [winner.id],
+        text: 'vince - tutti fold',
+        amount: potWon,
+      },
     );
   }
 

@@ -1,37 +1,38 @@
-import { CHIP_VALUES } from '../game/pokerEngine.js';
 import './ChipSelector.css';
 
-const CHIP_COLORS = {
-  5: '#e8e8e8',
-  10: '#3d9a52',
-  20: '#2a6ab8',
-  50: '#c96a30',
-  100: '#1a1a1a',
-  250: '#8a3535',
-  500: '#6b2d8a',
-};
+export default function ChipSelector({
+  selected,
+  onSelect,
+  disabled,
+  label,
+  min = 20,
+  max = 500,
+  toCall = 0,
+}) {
+  const safeMax = Math.max(0, Math.floor(max));
+  const safeMin = Math.min(Math.max(1, Math.floor(min)), Math.max(1, safeMax));
+  const value = Math.min(Math.max(selected, safeMin), Math.max(safeMin, safeMax));
+  const isAllInRaise = safeMax > 0 && value >= safeMax;
 
-export default function ChipSelector({ selected, onSelect, disabled, label }) {
   return (
     <div className={`chip-selector ${disabled ? 'chip-selector--disabled' : ''}`}>
       <span className="chip-selector__label">{label ?? 'Scommessa (raise)'}</span>
-      <div className="chip-selector__row">
-        {CHIP_VALUES.map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={`chip-selector__chip ${selected === value ? 'chip-selector__chip--active' : ''}`}
-            style={{ '--chip-color': CHIP_COLORS[value] ?? '#888' }}
-            onClick={() => onSelect(value)}
-            disabled={disabled}
-            title={`${value} chips`}
-          >
-            <span className="chip-selector__chip-inner">{value}</span>
-          </button>
-        ))}
+      <div className="chip-selector__slider-row">
+        <input
+          type="range"
+          min={safeMin}
+          max={Math.max(safeMin, safeMax)}
+          step="1"
+          value={value}
+          onChange={(event) => onSelect(Number(event.target.value))}
+          disabled={disabled || safeMax <= 0}
+        />
+        <output>{value.toLocaleString()}</output>
       </div>
       <p className="chip-selector__hint">
-        Raise aggiunge <strong>{selected}</strong> chips oltre il call
+        Raise aggiunge <strong>{value.toLocaleString()}</strong> chips oltre il call
+        {toCall > 0 && <span> ({toCall.toLocaleString()} da chiamare)</span>}
+        {isAllInRaise && <em> All-in</em>}
       </p>
     </div>
   );

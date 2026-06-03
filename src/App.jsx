@@ -47,6 +47,7 @@ function App() {
   const [gameState, setGameState] = useState(null);
   const [activeRoom, setActiveRoom] = useState(null);
   const [selectedBet, setSelectedBet] = useState(BIG_BLIND);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [lobbyNotice, setLobbyNotice] = useState(null);
 
   const wallet = useWallet();
@@ -211,22 +212,18 @@ function App() {
     });
   }, [isSharedRoom, isRoomHost, persistGameState, user]);
 
-  const handleAction = useCallback(
+  const executeAction = useCallback(
     (action) => {
-      if (action === 'allin') {
-        const human = getHumanPlayer(gameState);
-        if (!human || !window.confirm(`Vuoi davvero andare all-in con ${human.chips.toLocaleString()} chips?`)) {
-          return;
-        }
-      }
-
       setGameState((s) => {
         if (!s) return s;
         const human = getHumanPlayer(s);
         const humanIndex = s.players.findIndex((p) => p.isHuman);
         if (humanIndex !== s.activePlayerIndex) return s;
         const toCall = human ? Math.max(0, s.currentBet - human.currentBet) : 0;
-        const opts = { betAmount: selectedBet };
+        const maxRaise = human ? Math.max(0, human.chips - toCall) : 0;
+        const minRaise = Math.min(s.bettingRound?.minRaise ?? s.bigBlind ?? BIG_BLIND, Math.max(1, maxRaise));
+        const raiseAmount = Math.min(Math.max(selectedBet, minRaise), Math.max(minRaise, maxRaise));
+        const opts = { betAmount: raiseAmount };
 
         if (action === 'check' && toCall === 0) {
           const next = playerAction(s, 'check', opts);
@@ -241,15 +238,56 @@ function App() {
 
         const next = playerAction(s, action, opts);
         if (human && s.activePlayerIndex === humanIndex) {
-          if (action === 'raise' || (action === 'call' && toCall > 0)) {
-            wallet.placeBet(action === 'raise' ? toCall + selectedBet : toCall);
+          if (action === 'raise' || action === 'allin' || (action === 'call' && toCall > 0)) {
+            const amount = action === 'allin'
+              ? human.chips
+              : action === 'raise'
+                ? toCall + raiseAmount
+                : toCall;
+            wallet.placeBet(amount);
           }
         }
         void persistGameState(next);
         return withHumanPerspective(next, user);
       });
     },
-    [selectedBet, wallet, persistGameState, user, gameState],
+    [selectedBet, wallet, persistGameState, user],
+  );
+
+  const handleAction = useCallback(
+    (action) => {
+      if (!gameState) return;
+      const human = getHumanPlayer(gameState);
+      if (!human) return;
+      const toCall = Math.max(0, gameState.currentBet - human.currentBet);
+      const maxRaise = Math.max(0, human.chips - toCall);
+      const minRaise = Math.min(gameState.bettingRound?.minRaise ?? gameState.bigBlind ?? BIG_BLIND, Math.max(1, maxRaise));
+      const raiseAmount = Math.min(Math.max(selectedBet, minRaise), Math.max(minRaise, maxRaise));
+      const raiseTotal = toCall + raiseAmount;
+
+      if (action === 'allin') {
+        setConfirmAction({
+          action,
+          title: 'Conferma all-in',
+          text: `Vuoi mandare tutte le tue ${human.chips.toLocaleString()} chips nel piatto?`,
+          amount: human.chips,
+        });
+        return;
+      }
+
+      if (action === 'raise' && raiseTotal >= human.chips) {
+        setConfirmAction({
+          action,
+          title: 'Raise all-in',
+          text: `Questo raise usa tutte le tue ${human.chips.toLocaleString()} chips. Confermi?`,
+          amount: human.chips,
+        });
+        return;
+      }
+
+      executeAction(action);
+    },
+    [executeAction, gameState, selectedBet],
   );
 
   useEffect(() => {
@@ -358,11 +396,35 @@ function App() {
           onRaise={() => handleAction('raise')}
           onAllIn={() => handleAction('allin')}
           onFold={() => handleAction('fold')}
-          userNametag={user.nametag}
           roomCode={activeRoom?.code}
           user={user}
         />
       </main>
+      {confirmAction && (
+        <div className="app-confirm" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">
+          <div className="app-confirm__panel">
+            <h2 id="app-confirm-title">{confirmAction.title}</h2>
+            <p>{confirmAction.text}</p>
+            <strong>{confirmAction.amount.toLocaleString()} chips</strong>
+            <div className="app-confirm__actions">
+              <button type="button" onClick={() => setConfirmAction(null)}>
+                Annulla
+              </button>
+              <button
+                type="button"
+                className="app-confirm__confirm"
+                onClick={() => {
+                  const action = confirmAction.action;
+                  setConfirmAction(null);
+                  executeAction(action);
+                }}
+              >
+                Conferma
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

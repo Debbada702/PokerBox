@@ -43,6 +43,12 @@
   border-color: #fff1a5;
 }
 
+.win-burst--loss {
+  color: #ffe7e7;
+  background: #8f2635;
+  border-color: #ff8f9f;
+}
+
 @keyframes winBurst {
   0% {
     opacity: 0;
