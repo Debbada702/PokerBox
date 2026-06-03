@@ -47,12 +47,12 @@ export default function GameChat({ roomCode, user }) {
         ))}
       </div>
       <form className="game-chat__form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          maxLength={180}
+        <textarea
+          maxLength={300}
           placeholder="Scrivi in chat..."
           value={text}
           onChange={(event) => setText(event.target.value)}
+          rows={2}
         />
         <button type="submit">Invia</button>
       </form>

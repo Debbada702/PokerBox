@@ -11,13 +11,14 @@ export default function AccountMenu({
 }) {
   const [open, setOpen] = useState(false);
 
-  const toggleOpen = () => {
-    setOpen((value) => !value);
-  };
-
   const go = (target) => {
     setOpen(false);
     onNavigate?.(target);
+  };
+
+  const leave = () => {
+    setOpen(false);
+    onLeaveTable?.();
   };
 
   return (
@@ -25,7 +26,7 @@ export default function AccountMenu({
       <button
         type="button"
         className="account-menu__trigger"
-        onClick={toggleOpen}
+        onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
         <span className="account-menu__hamburger" aria-hidden><span /><span /><span /></span>
@@ -35,20 +36,23 @@ export default function AccountMenu({
       {open && (
         <div className="account-menu__panel" role="dialog" aria-label="Menu">
           <div className="account-menu__nav">
-            {!inGame && <button type="button" onClick={() => go('profile')}><span>⚙</span>Profilo e impostazioni</button>}
-            <button type="button" onClick={() => go('wallet')}><span>◇</span>Wallet BottiCoin</button>
-            <button type="button" onClick={() => go('publicRooms')}><span>▦</span>Stanze pubbliche</button>
-            <button type="button" onClick={() => go('terms')}><span>§</span>Termini e condizioni</button>
-            {!inGame && <button type="button" onClick={() => go('security')}><span>●</span>Sicurezza account</button>}
-            <button type="button" onClick={() => go('support')}><span>?</span>Supporto</button>
-            {onLeaveTable && (
-              <button type="button" className="account-menu__danger" onClick={onLeaveTable}>
-                <span>×</span>Abbandona tavolo
+            {inGame ? (
+              <button type="button" className="account-menu__danger" onClick={leave}>
+                <span>X</span>Abbandona tavolo
               </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => go('profile')}><span>P</span>Profilo e impostazioni</button>
+                <button type="button" onClick={() => go('wallet')}><span>W</span>Wallet BottiCoin</button>
+                <button type="button" onClick={() => go('publicRooms')}><span>R</span>Stanze pubbliche</button>
+                <button type="button" onClick={() => go('terms')}><span>T</span>Termini e condizioni</button>
+                <button type="button" onClick={() => go('security')}><span>S</span>Sicurezza account</button>
+                <button type="button" onClick={() => go('support')}><span>?</span>Supporto</button>
+                <button type="button" className="account-menu__logout" onClick={onLogout}>
+                  <span>E</span>Esci
+                </button>
+              </>
             )}
-            <button type="button" className="account-menu__logout" onClick={onLogout}>
-              <span>↪</span>Esci
-            </button>
           </div>
         </div>
       )}

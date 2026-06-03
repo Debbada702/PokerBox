@@ -10,8 +10,9 @@ const TYPE_ICONS = {
   blind: 'B',
   win: 'W',
   phase: '>',
-  info: 'i',
 };
+
+const HISTORY_TYPES = new Set(['fold', 'check', 'call', 'raise', 'bet', 'blind', 'win', 'phase']);
 
 export default function ActionFeed({ entries, handNumber, dealerName, handHistory = [] }) {
   const [selectedHand, setSelectedHand] = useState('');
@@ -20,9 +21,10 @@ export default function ActionFeed({ entries, handNumber, dealerName, handHistor
   const selectedSummary = useMemo(() => {
     return handHistory.find((hand) => String(hand.handNumber) === selectedHandNumber) ?? currentHand;
   }, [currentHand, handHistory, selectedHandNumber]);
-  const visibleEntries = selectedHandNumber === String(handNumber)
+  const rawEntries = selectedHandNumber === String(handNumber)
     ? entries
     : (selectedSummary?.actions ?? []);
+  const visibleEntries = rawEntries.filter((entry) => HISTORY_TYPES.has(entry.type));
 
   return (
     <div className="action-feed" aria-live="polite">
@@ -71,7 +73,7 @@ export default function ActionFeed({ entries, handNumber, dealerName, handHistor
           ))}
         </ul>
       ) : (
-        <p className="action-feed__empty">Le ultime 4 azioni appariranno qui.</p>
+        <p className="action-feed__empty">Le azioni della mano appariranno qui.</p>
       )}
     </div>
   );

@@ -632,7 +632,7 @@ export function playerAction(rawState, action, options = {}) {
     next = markActed({ ...state, players }, playerIndex);
     logEntry = { type: 'fold', playerName: player.name, text: 'fold' };
   } else if (action === 'check') {
-    if (toCall > 0) return pushLog(state, { type: 'info', text: 'Non puoi check: devi call, raise o fold' });
+    if (toCall > 0) return state;
     next = markActed(state, playerIndex);
     logEntry = { type: 'check', playerName: player.name, text: 'check' };
   } else if (action === 'call' || action === 'bet' || action === 'raise' || action === 'allin') {
@@ -643,7 +643,7 @@ export function playerAction(rawState, action, options = {}) {
     if (action === 'raise' && state.currentBet === 0) return state;
     if (action === 'bet' && requestedTotal < state.bigBlind) return state;
     if (action === 'raise' && requestedTotal < state.currentBet + state.lastRaiseAmount && requestedTotal < player.currentBet + player.chips) {
-      return pushLog(state, { type: 'info', text: `Raise minimo: ${state.currentBet + state.lastRaiseAmount}` });
+      return state;
     }
 
     const amountToPay = Math.max(0, requestedTotal - player.currentBet);

@@ -192,7 +192,7 @@ export async function listRoomMessages(code) {
 
 export async function sendRoomMessage(code, user, text) {
   if (!code || code === 'LOCAL') return { ok: false, error: 'Chat disponibile solo nelle stanze' };
-  const cleanText = text.trim().slice(0, 180);
+  const cleanText = text.trim().slice(0, 300);
   if (!cleanText) return { ok: false, error: 'Messaggio vuoto' };
   if (isSupabaseConfigured) return sendRoomMessageSupabase(code, user, cleanText);
 

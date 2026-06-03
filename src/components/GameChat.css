@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 0.72rem;
+  padding: 0.58rem;
   background:
     linear-gradient(180deg, rgba(15, 21, 29, 0.94), rgba(4, 7, 11, 0.94)),
     rgba(8, 13, 18, 0.9);
@@ -41,6 +41,9 @@
   color: #dce6f0;
   background: rgba(0, 0, 0, 0.22);
   border-radius: 7px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .game-chat__message strong {
@@ -53,14 +56,18 @@
   gap: 0.35rem;
 }
 
-.game-chat__form input {
+.game-chat__form textarea {
   flex: 1;
   min-width: 0;
+  resize: none;
   padding: 0.42rem 0.55rem;
   color: #eef5ff;
+  font: inherit;
+  line-height: 1.25;
   background: rgba(0, 0, 0, 0.32);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 7px;
+  overflow-wrap: anywhere;
 }
 
 .game-chat__form button {

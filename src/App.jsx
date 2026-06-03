@@ -50,6 +50,7 @@ function App() {
   const [selectedBet, setSelectedBet] = useState(BIG_BLIND);
   const [confirmAction, setConfirmAction] = useState(null);
   const [lobbyNotice, setLobbyNotice] = useState(null);
+  const [tableAlert, setTableAlert] = useState(null);
 
   const wallet = useWallet();
   const botTimerRef = useRef(null);
@@ -147,6 +148,32 @@ function App() {
     setScreen('home');
   }, [shouldPersistChips, gameState, user, activeRoom, updateChips]);
 
+  const requestLeaveGame = useCallback(() => {
+    if (!gameState) {
+      leaveGame();
+      return;
+    }
+
+    const human = getHumanPlayer(gameState);
+    const canLeave =
+      gameState.phase === PHASES.IDLE ||
+      gameState.phase === PHASES.SHOWDOWN ||
+      human?.status === 'folded' ||
+      human?.isActive === false;
+
+    if (!canLeave) {
+      setTableAlert('Puoi abbandonare solo a fine mano o dopo aver foldato.');
+      return;
+    }
+
+    setConfirmAction({
+      action: 'leaveTable',
+      title: 'Abbandona tavolo',
+      text: 'Vuoi davvero uscire dal tavolo?',
+      amount: null,
+    });
+  }, [gameState, leaveGame]);
+
   const handleLogout = useCallback(() => {
     if (screen === 'game') leaveGame();
     else if (screen === 'lobby') leaveLobby();
@@ -242,17 +269,25 @@ function App() {
           raiseTo: s.currentBet === 0 ? raiseAmount : s.currentBet + raiseAmount,
         };
 
+        if (action === 'check' && toCall > 0) {
+          setTableAlert('Non puoi fare check: devi call, raise o fold.');
+          return s;
+        }
+
         if (action === 'check' && toCall === 0) {
+          setTableAlert(null);
           const next = playerAction(s, 'check', opts);
           void persistGameState(next);
           return withHumanPerspective(next, user);
         }
         if (action === 'call' && toCall === 0) {
+          setTableAlert(null);
           const next = playerAction(s, 'check', opts);
           void persistGameState(next);
           return withHumanPerspective(next, user);
         }
 
+        setTableAlert(null);
         const next = playerAction(s, engineAction, opts);
         if (human && s.activePlayerIndex === humanIndex) {
           if (action === 'raise' || action === 'allin' || (action === 'call' && toCall > 0)) {
@@ -422,12 +457,12 @@ function App() {
           {activeRoom?.code && activeRoom.code !== 'LOCAL' && (
             <span className="app__room-code">Stanza {activeRoom.code}</span>
           )}
-          <button type="button" className="app__profile-shortcut" onClick={() => setScreen('profile')}>
+          <span className="app__profile-shortcut" aria-label="Utente">
             {user.nametag}
-          </button>
+          </span>
           <AccountMenu
             onLogout={handleLogout}
-            onLeaveTable={leaveGame}
+            onLeaveTable={requestLeaveGame}
             onNavigate={navigatePage}
             compact
             triggerLabel="Menu"
@@ -450,6 +485,8 @@ function App() {
           onFold={() => handleAction('fold')}
           roomCode={activeRoom?.code}
           user={user}
+          tableAlert={tableAlert}
+          onDismissAlert={() => setTableAlert(null)}
         />
       </main>
       {confirmAction && (
@@ -457,7 +494,7 @@ function App() {
           <div className="app-confirm__panel">
             <h2 id="app-confirm-title">{confirmAction.title}</h2>
             <p>{confirmAction.text}</p>
-            <strong>{confirmAction.amount.toLocaleString()} chips</strong>
+            {confirmAction.amount != null && <strong>{confirmAction.amount.toLocaleString()} chips</strong>}
             <div className="app-confirm__actions">
               <button type="button" onClick={() => setConfirmAction(null)}>
                 Annulla
@@ -468,7 +505,8 @@ function App() {
                 onClick={() => {
                   const action = confirmAction.action;
                   setConfirmAction(null);
-                  executeAction(action);
+                  if (action === 'leaveTable') leaveGame();
+                  else executeAction(action);
                 }}
               >
                 Conferma

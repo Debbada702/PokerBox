@@ -40,6 +40,8 @@ export default function PokerTable({
   onFold,
   roomCode,
   user,
+  tableAlert,
+  onDismissAlert,
 }) {
   const {
     phase,
@@ -145,6 +147,12 @@ export default function PokerTable({
           </section>
 
           <section className="poker-room__footer">
+            {tableAlert && (
+              <div className="poker-room__private-alert" role="status">
+                <span>{tableAlert}</span>
+                <button type="button" onClick={onDismissAlert}>OK</button>
+              </div>
+            )}
             <div className={`poker-room__turn-status ${humanTurn ? 'poker-room__turn-status--you' : ''}`}>
               {tableStatusText({ phase, humanTurn, activePlayer, handNumber })}
             </div>

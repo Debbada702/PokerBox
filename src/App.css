@@ -61,12 +61,14 @@
 }
 
 .app__profile-shortcut {
+  display: inline-flex;
+  align-items: center;
   min-height: 36px;
   padding: 0.42rem 0.7rem;
   background: #111923;
   border: 1px solid rgba(224, 185, 63, 0.28);
   border-radius: 8px;
-  cursor: pointer;
+  cursor: default;
 }
 
 .app__user-chips {

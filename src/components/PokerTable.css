@@ -27,14 +27,14 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(190px, 230px) minmax(620px, 1fr) minmax(230px, 300px);
-  gap: 0.75rem;
+  grid-template-columns: minmax(160px, 190px) minmax(760px, 1fr) minmax(190px, 230px);
+  gap: 0.6rem;
   align-items: stretch;
   padding-top: 0;
 }
 
 .poker-room__arena--chatless {
-  grid-template-columns: minmax(190px, 230px) minmax(620px, 1fr);
+  grid-template-columns: minmax(160px, 190px) minmax(760px, 1fr);
 }
 
 .poker-room__side {
@@ -53,7 +53,7 @@
 
 .poker-table {
   position: relative;
-  width: min(100%, 900px);
+  width: min(100%, 980px);
   aspect-ratio: 2 / 1.04;
 }
 
@@ -301,6 +301,37 @@
   border-radius: 8px;
 }
 
+.poker-room__private-alert {
+  width: 100%;
+  max-width: 760px;
+  min-height: 34px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.42rem 0.55rem;
+  color: #ffd6d6;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: rgba(92, 20, 30, 0.92);
+  border: 1px solid rgba(255, 120, 120, 0.36);
+  border-radius: 8px;
+}
+
+.poker-room__private-alert button {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 0.24rem 0.52rem;
+  color: #180b0b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  background: #ffb9b9;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
 .poker-room__turn-status--you {
   color: #171103;
   background: #f0d15b;
@@ -362,7 +393,7 @@
 
 @media (min-width: 900px) {
   .poker-table {
-    width: min(100%, 900px);
+    width: min(100%, 980px);
     max-height: min(43vh, 430px);
   }
 
@@ -384,11 +415,11 @@
 
   .poker-room__arena {
     gap: 0.65rem;
-    grid-template-columns: minmax(170px, 210px) minmax(560px, 1fr) minmax(210px, 270px);
+    grid-template-columns: minmax(150px, 180px) minmax(680px, 1fr) minmax(175px, 220px);
   }
 
   .poker-room__arena--chatless {
-    grid-template-columns: minmax(170px, 210px) minmax(560px, 1fr);
+    grid-template-columns: minmax(150px, 180px) minmax(680px, 1fr);
   }
 }
 
