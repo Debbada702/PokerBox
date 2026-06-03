@@ -27,7 +27,11 @@ const SUIT_TO_SOLVER = {
 let logId = 0;
 
 function emptyBettingRound(bigBlind = BIG_BLIND) {
-  return { actedIndices: [], lastRaiseIndex: -1, minRaise: bigBlind };
+  return {
+    actedIndices: [],
+    minRaise: bigBlind,
+    lastAggressorIndex: -1,
+  };
 }
 
 function baseTableState(players) {
@@ -40,6 +44,8 @@ function baseTableState(players) {
     currentBet: 0,
     activePlayerIndex: 0,
     dealerIndex: 0,
+    smallBlindIndex: -1,
+    bigBlindIndex: -1,
     actionLog: [],
     handHistory: [],
     winnerId: null,
@@ -55,6 +61,7 @@ export function createInitialState(playerCount = 6, humanProfile = null) {
   const roster = [{
     userId: humanProfile?.id ?? 0,
     nametag: humanProfile?.nametag ?? 'Tu',
+    chips: humanProfile?.chips ?? 0,
     isHuman: true,
     isBot: false,
   }];
@@ -63,6 +70,7 @@ export function createInitialState(playerCount = 6, humanProfile = null) {
     roster.push({
       userId: null,
       nametag: BOT_NAMES[i - 1] ?? `Bot ${i}`,
+      chips: 10_000,
       isHuman: false,
       isBot: true,
     });
@@ -83,6 +91,9 @@ export function createGameFromRoster(roster, humanProfile = null) {
     committed: 0,
     isHuman: !!seat.isHuman,
     isBot: !!seat.isBot,
+    isDealer: false,
+    isSmallBlind: false,
+    isBigBlind: false,
   }));
 
   return baseTableState(players);
@@ -100,6 +111,7 @@ export function withHumanPerspective(state, user) {
 }
 
 function pushLog(state, entry) {
+  if (!entry) return state;
   const full = { id: ++logId, timestamp: Date.now(), ...entry };
   return {
     ...state,
@@ -107,104 +119,117 @@ function pushLog(state, entry) {
   };
 }
 
-function resetPlayersForHand(players, dealerIndex) {
-  return players.map((p, i) => ({
-    ...p,
-    holeCards: [],
-    status: p.chips > 0 ? 'active' : 'folded',
-    currentBet: 0,
-    committed: 0,
-    isDealer: i === dealerIndex,
-    isSmallBlind: false,
-    isBigBlind: false,
-  }));
+function rightOf(index, length) {
+  return (index - 1 + length) % length;
 }
 
-function toSolverCard(card) {
-  const rank = card.rank === '10' ? 'T' : card.rank;
-  return `${rank}${SUIT_TO_SOLVER[card.suit] ?? 's'}`;
-}
-
-function solvePlayerHand(player, communityCards) {
-  return Hand.solve([...player.holeCards, ...communityCards].map(toSolverCard));
-}
-
-function evaluateWinners(players, communityCards) {
-  const solved = players
-    .filter((p) => p.status === 'active' && p.holeCards.length === 2)
-    .map((player) => ({ player, hand: solvePlayerHand(player, communityCards) }));
-
-  if (solved.length === 0) return { winners: [], description: 'Nessuna mano valida' };
-
-  const winningHands = Hand.winners(solved.map((entry) => entry.hand));
-  const winners = solved.filter((entry) => winningHands.includes(entry.hand));
-  return {
-    winners,
-    description: winners[0]?.hand?.descr ?? winners[0]?.hand?.name ?? 'Mano vincente',
-  };
-}
-
-export function getNextActivePlayer(players, fromIndex) {
+function walkLeft(players, fromIndex, predicate, includeStart = false) {
   const len = players.length;
-  for (let step = 1; step <= len; step += 1) {
-    const idx = (fromIndex - step + len) % len;
-    if (players[idx].status === 'active') return idx;
-  }
-  return fromIndex;
-}
-
-function getNextActionablePlayer(players, fromIndex) {
-  const len = players.length;
-  for (let step = 1; step <= len; step += 1) {
-    const idx = (fromIndex - step + len) % len;
-    if (players[idx].status === 'active' && players[idx].chips > 0) return idx;
+  for (let step = includeStart ? 0 : 1; step <= len; step += 1) {
+    const idx = (fromIndex + step) % len;
+    if (predicate(players[idx], idx)) return idx;
   }
   return -1;
 }
 
-function getFirstPostflopPlayer(players, dealerIndex) {
-  const actionable = getNextActionablePlayer(players, dealerIndex);
-  return actionable >= 0 ? actionable : getNextActivePlayer(players, dealerIndex);
+function walkRight(players, fromIndex, predicate, includeStart = false) {
+  const len = players.length;
+  for (let step = includeStart ? 0 : 1; step <= len; step += 1) {
+    const idx = (fromIndex - step + len) % len;
+    if (predicate(players[idx], idx)) return idx;
+  }
+  return -1;
 }
 
-function getActionableIndices(players) {
+function isInHand(player) {
+  return player.status === 'active' || player.status === 'allin';
+}
+
+function isActionable(player) {
+  return player.status === 'active' && player.chips > 0;
+}
+
+export function getNextActivePlayer(players, fromIndex) {
+  const idx = walkRight(players, fromIndex, (player) => player.chips > 0 || isInHand(player));
+  return idx >= 0 ? idx : fromIndex;
+}
+
+function getNextDealer(players, previousDealerIndex, isFirstHand) {
+  const predicate = (player) => player.chips > 0;
+  const idx = isFirstHand
+    ? walkRight(players, 0, predicate, true)
+    : walkLeft(players, previousDealerIndex, predicate);
+  return idx >= 0 ? idx : previousDealerIndex;
+}
+
+function getNextActionablePlayer(players, fromIndex) {
+  return walkRight(players, fromIndex, isActionable);
+}
+
+function getFirstActionableFrom(players, fromIndex) {
+  return walkRight(players, fromIndex, isActionable, true);
+}
+
+function activeContestants(players) {
+  return players.filter(isInHand);
+}
+
+function actionableIndices(players) {
   return players
-    .map((p, i) => (p.status === 'active' && p.chips > 0 ? i : -1))
-    .filter((i) => i >= 0);
+    .map((player, index) => (isActionable(player) ? index : -1))
+    .filter((index) => index >= 0);
 }
 
-function allActiveMatched(players, currentBet) {
-  return players
-    .filter((p) => p.status === 'active')
-    .every((p) => p.currentBet >= currentBet || p.chips === 0);
+function resetPlayersForHand(players, dealerIndex, sbIndex, bbIndex) {
+  return players.map((player, index) => ({
+    ...player,
+    holeCards: [],
+    status: player.chips > 0 ? 'active' : 'folded',
+    currentBet: 0,
+    committed: 0,
+    isDealer: index === dealerIndex,
+    isSmallBlind: index === sbIndex,
+    isBigBlind: index === bbIndex,
+  }));
 }
 
-function markActed(bettingRound, playerIndex) {
-  const acted = new Set(bettingRound.actedIndices);
-  acted.add(playerIndex);
-  return { ...bettingRound, actedIndices: [...acted] };
+function markActed(round, index) {
+  const acted = new Set(round.actedIndices);
+  acted.add(index);
+  return { ...round, actedIndices: [...acted] };
 }
 
-function resetActedAfterRaise(bettingRound, raiserIndex, minRaise) {
-  return { ...bettingRound, actedIndices: [raiserIndex], lastRaiseIndex: raiserIndex, minRaise };
+function resetActedAfterRaise(round, raiserIndex, minRaise) {
+  return {
+    ...round,
+    actedIndices: [raiserIndex],
+    minRaise,
+    lastAggressorIndex: raiserIndex,
+  };
 }
 
-function isBettingRoundComplete(players, currentBet, bettingRound) {
-  const actionable = getActionableIndices(players);
-  if (!allActiveMatched(players, currentBet)) return false;
-  if (actionable.length === 0) return true;
-  return actionable.every((i) => bettingRound.actedIndices.includes(i));
+function bettingRoundComplete(players, currentBet, round) {
+  const indices = actionableIndices(players);
+  if (indices.length === 0) return true;
+
+  return indices.every((index) => {
+    const player = players[index];
+    const matched = player.currentBet >= currentBet;
+    const acted = round.actedIndices.includes(index);
+    return matched && acted;
+  });
 }
 
 function applyBet(players, playerIndex, amount, pot) {
   const updated = [...players];
-  const p = { ...updated[playerIndex] };
-  const toPay = Math.min(Math.max(0, amount), p.chips);
-  p.chips -= toPay;
-  p.currentBet += toPay;
-  p.committed = (p.committed ?? 0) + toPay;
-  updated[playerIndex] = p;
-  return { players: updated, pot: pot + toPay, added: toPay };
+  const player = { ...updated[playerIndex] };
+  const paid = Math.min(Math.max(0, amount), player.chips);
+  player.chips -= paid;
+  player.currentBet += paid;
+  player.committed = (player.committed ?? 0) + paid;
+  if (player.status === 'active' && player.chips === 0) player.status = 'allin';
+  updated[playerIndex] = player;
+  return { players: updated, pot: pot + paid, paid };
 }
 
 function postBlind(state, playerIndex, amount, label) {
@@ -217,73 +242,109 @@ function postBlind(state, playerIndex, amount, label) {
       pot: result.pot,
       currentBet: Math.max(state.currentBet, result.players[playerIndex].currentBet),
     },
-    { type: 'blind', playerName: player.name, text: label, amount: result.added },
+    { type: 'blind', playerName: player.name, text: label, amount: result.paid },
   );
 }
 
-function burn(deck) {
-  return drawCards(deck, 1).remaining;
+function dealHoleCards(players, deck, sbIndex) {
+  const dealt = players.map((player) => ({ ...player, holeCards: [] }));
+  let remainingDeck = deck;
+  let seat = sbIndex;
+
+  for (let cardRound = 0; cardRound < 2; cardRound += 1) {
+    for (let count = 0; count < players.length; count += 1) {
+      if (dealt[seat].status === 'active') {
+        const draw = drawCards(remainingDeck, 1);
+        dealt[seat] = { ...dealt[seat], holeCards: [...dealt[seat].holeCards, draw.drawn[0]] };
+        remainingDeck = draw.remaining;
+      }
+      seat = rightOf(seat, players.length);
+    }
+  }
+
+  return { players: dealt, deck: remainingDeck };
 }
 
-function settleShowdown(players, communityCards) {
-  const updatedPlayers = players.map((p) => ({ ...p }));
-  const awards = new Map(updatedPlayers.map((p) => [p.id, 0]));
-  const levels = [...new Set(updatedPlayers.map((p) => p.committed ?? 0).filter((n) => n > 0))]
-    .sort((a, b) => a - b);
+function toSolverCard(card) {
+  const rank = card.rank === '10' ? 'T' : card.rank;
+  return `${rank}${SUIT_TO_SOLVER[card.suit] ?? 's'}`;
+}
 
+function solvePlayerHand(player, communityCards) {
+  return Hand.solve([...player.holeCards, ...communityCards].map(toSolverCard));
+}
+
+function pickWinners(eligiblePlayers, communityCards) {
+  const solved = eligiblePlayers
+    .filter((player) => isInHand(player) && player.holeCards.length === 2)
+    .map((player) => ({ player, hand: solvePlayerHand(player, communityCards) }));
+
+  if (solved.length === 0) return { winners: [], description: 'Nessuna mano valida' };
+
+  const winningHands = Hand.winners(solved.map((entry) => entry.hand));
+  const winners = solved.filter((entry) => winningHands.includes(entry.hand));
+  return {
+    winners,
+    description: winners[0]?.hand?.descr ?? winners[0]?.hand?.name ?? 'Mano vincente',
+  };
+}
+
+function settlePots(players, communityCards) {
+  const updated = players.map((player) => ({ ...player }));
+  const awards = new Map(updated.map((player) => [player.id, 0]));
+  const levels = [...new Set(updated.map((player) => player.committed ?? 0).filter((n) => n > 0))]
+    .sort((a, b) => a - b);
+  const sidePots = [];
   let previous = 0;
   let description = 'Mano vincente';
-  const potResults = [];
 
   for (const level of levels) {
-    const contributors = updatedPlayers.filter((p) => (p.committed ?? 0) >= level);
-    const potAmount = (level - previous) * contributors.length;
+    const contributors = updated.filter((player) => (player.committed ?? 0) >= level);
+    const amount = (level - previous) * contributors.length;
     previous = level;
-    if (potAmount <= 0) continue;
+    if (amount <= 0) continue;
 
-    const eligible = contributors.filter((p) => p.status === 'active');
-    const result = evaluateWinners(eligible, communityCards);
+    const eligible = contributors.filter(isInHand);
+    const result = pickWinners(eligible, communityCards);
     if (result.winners.length === 0) continue;
 
     description = result.description;
-    const share = Math.floor(potAmount / result.winners.length);
-    let remainder = potAmount - share * result.winners.length;
-    const potWinnerNames = [];
+    const share = Math.floor(amount / result.winners.length);
+    let remainder = amount - share * result.winners.length;
+    const winnerNames = [];
 
     for (const { player } of result.winners) {
-      const target = updatedPlayers.find((p) => p.id === player.id);
+      const target = updated.find((p) => p.id === player.id);
       if (!target) continue;
       const payout = share + (remainder > 0 ? 1 : 0);
       target.chips += payout;
       awards.set(target.id, (awards.get(target.id) ?? 0) + payout);
-      potWinnerNames.push(target.name);
+      winnerNames.push(target.name);
       remainder = Math.max(0, remainder - 1);
     }
 
-    potResults.push({ amount: potAmount, winnerNames: potWinnerNames, description: result.description });
+    sidePots.push({ amount, winnerNames, description: result.description });
   }
 
-  const awardEntries = [...awards.entries()].filter(([, amount]) => amount > 0);
-  const topAward = awardEntries.reduce((max, [, amount]) => Math.max(max, amount), 0);
-  const winnerIds = awardEntries
-    .filter(([, amount]) => amount === topAward)
+  const winningIds = [...awards.entries()]
+    .filter(([, amount]) => amount > 0)
     .map(([id]) => id);
-  const winnerSet = new Set(winnerIds);
-  const finalPlayers = updatedPlayers.map((p) => (
-    winnerSet.has(p.id) ? { ...p, status: 'winner' } : p
-  ));
+  const winnerSet = new Set(winningIds);
 
   return {
-    players: finalPlayers,
-    winnerIds,
-    winnerNames: finalPlayers.filter((p) => winnerSet.has(p.id)).map((p) => p.name),
+    players: updated.map((player) => (
+      winnerSet.has(player.id) ? { ...player, status: 'winner' } : player
+    )),
+    winnerIds: winningIds,
+    winnerNames: updated.filter((player) => winnerSet.has(player.id)).map((player) => player.name),
     description,
-    potResults,
+    sidePots,
+    totalAward: [...awards.values()].reduce((sum, amount) => sum + amount, 0),
   };
 }
 
-function finishShowdown(state, deck, communityCards) {
-  const result = settleShowdown(state.players, communityCards);
+function finishShowdown(state) {
+  const result = settlePots(state.players, state.communityCards);
   const winnerName = result.winnerNames.join(', ') || '?';
   const isSplit = result.winnerIds.length > 1;
 
@@ -291,12 +352,11 @@ function finishShowdown(state, deck, communityCards) {
     {
       ...state,
       phase: PHASES.SHOWDOWN,
-      deck,
-      communityCards,
       players: result.players,
       winnerId: result.winnerIds[0] ?? null,
       pot: 0,
       currentBet: 0,
+      sidePots: result.sidePots,
       bettingRound: emptyBettingRound(state.bigBlind),
     },
     {
@@ -306,94 +366,88 @@ function finishShowdown(state, deck, communityCards) {
       text: isSplit
         ? `split pot - ${result.description}`
         : `vince allo showdown - ${result.description}`,
-      amount: state.pot,
+      amount: result.totalAward,
     },
   );
 }
 
-function advancePhase(state) {
-  const { phase, players } = state;
-  let newDeck = [...state.deck];
-  let communityCards = [...state.communityCards];
-  let next = state;
+function resetStreetBets(players) {
+  return players.map((player) => ({ ...player, currentBet: 0 }));
+}
 
-  if (phase === PHASES.PREFLOP) {
-    const flop = drawCards(burn(newDeck), 3);
-    newDeck = flop.remaining;
-    communityCards = flop.drawn;
-    next = pushLog(state, { type: 'phase', text: 'Flop - 3 carte sul board' });
-  } else if (phase === PHASES.FLOP) {
-    const turn = drawCards(burn(newDeck), 1);
-    newDeck = turn.remaining;
-    communityCards = [...communityCards, ...turn.drawn];
-    next = pushLog(state, { type: 'phase', text: 'Turn - quarta carta' });
-  } else if (phase === PHASES.TURN) {
-    const river = drawCards(burn(newDeck), 1);
-    newDeck = river.remaining;
-    communityCards = [...communityCards, ...river.drawn];
-    next = pushLog(state, { type: 'phase', text: 'River - quinta carta' });
-  } else if (phase === PHASES.RIVER) {
-    return finishShowdown(state, newDeck, communityCards);
-  }
+function drawCommunity(state, count, label) {
+  const draw = drawCards(state.deck, count);
+  return pushLog(
+    {
+      ...state,
+      deck: draw.remaining,
+      communityCards: [...state.communityCards, ...draw.drawn],
+    },
+    { type: 'phase', text: label },
+  );
+}
 
+function nextStreet(state) {
   const phaseMap = {
     [PHASES.PREFLOP]: PHASES.FLOP,
     [PHASES.FLOP]: PHASES.TURN,
     [PHASES.TURN]: PHASES.RIVER,
   };
-  const resetBets = players.map((p) => ({ ...p, currentBet: 0 }));
-  const firstActive = getFirstPostflopPlayer(resetBets, state.dealerIndex);
 
+  if (state.phase === PHASES.RIVER) return finishShowdown(state);
+
+  let next = state;
+  if (state.phase === PHASES.PREFLOP) {
+    next = drawCommunity(state, 3, 'Flop - 3 carte comuni');
+  } else if (state.phase === PHASES.FLOP) {
+    next = drawCommunity(state, 1, 'Turn - quarta carta comune');
+  } else if (state.phase === PHASES.TURN) {
+    next = drawCommunity(state, 1, 'River - quinta carta comune');
+  }
+
+  const players = resetStreetBets(next.players);
+  const first = getFirstActionableFrom(players, next.smallBlindIndex);
   const nextState = {
     ...next,
-    phase: phaseMap[phase] ?? phase,
-    deck: newDeck,
-    communityCards,
-    players: resetBets,
+    phase: phaseMap[state.phase] ?? state.phase,
+    players,
     currentBet: 0,
-    activePlayerIndex: firstActive >= 0 ? firstActive : 0,
+    activePlayerIndex: first >= 0 ? first : 0,
     bettingRound: emptyBettingRound(state.bigBlind),
   };
 
-  if (getActionableIndices(nextState.players).length <= 1) {
-    return advancePhase(nextState);
+  if (actionableIndices(nextState.players).length <= 1) {
+    return nextStreet(nextState);
   }
 
   return nextState;
 }
 
+function archiveCurrentHand(state) {
+  if (state.handNumber <= 0) return state.handHistory ?? [];
+  const currentSummary = state.handHistory?.[0] ?? { handNumber: state.handNumber };
+  return [
+    { ...currentSummary, actions: state.actionLog ?? [] },
+    ...(state.handHistory ?? []).slice(1),
+  ];
+}
+
 export function dealHand(state) {
-  const playerCount = state.players.length;
-  const dealerIndex = (state.dealerIndex - 1 + playerCount) % playerCount;
+  const activeSeats = state.players.filter((player) => player.chips > 0).length;
+  if (activeSeats < 2) {
+    return pushLog(state, { type: 'info', text: 'Servono almeno 2 giocatori con chips per iniziare' });
+  }
+
+  const dealerIndex = getNextDealer(state.players, state.dealerIndex, state.handNumber === 0);
+  const sbIndex = getNextActivePlayer(state.players, dealerIndex);
+  const bbIndex = getNextActivePlayer(state.players, sbIndex);
+
   let deck = shuffleDeck(createDeck());
-  const holeDraw = drawCards(deck, playerCount * 2);
-  deck = holeDraw.remaining;
-
-  let players = resetPlayersForHand(state.players, dealerIndex).map((p, i) => ({
-    ...p,
-    holeCards: [holeDraw.drawn[i * 2], holeDraw.drawn[i * 2 + 1]],
-  }));
-
-  const activeCount = players.filter((p) => p.status === 'active').length;
-  const isHeadsUp = activeCount === 2;
-  const sbIndex = isHeadsUp ? dealerIndex : getNextActivePlayer(players, dealerIndex);
-  const bbIndex = getNextActivePlayer(players, sbIndex);
-  const firstToAct = isHeadsUp ? sbIndex : getNextActionablePlayer(players, bbIndex);
-  const previousHand = state.handNumber > 0
-    ? {
-      ...(state.handHistory?.[0] ?? { handNumber: state.handNumber }),
-      actions: state.actionLog ?? [],
-    }
-    : null;
-  const previousHistory = previousHand
-    ? [previousHand, ...(state.handHistory ?? []).slice(1)]
-    : (state.handHistory ?? []);
-
-  players = players.map((p, i) => ({
-    ...p,
-    isSmallBlind: i === sbIndex,
-    isBigBlind: i === bbIndex,
-  }));
+  let players = resetPlayersForHand(state.players, dealerIndex, sbIndex, bbIndex);
+  const dealt = dealHoleCards(players, deck, sbIndex);
+  players = dealt.players;
+  deck = dealt.deck;
+  const firstToAct = getNextActionablePlayer(players, bbIndex);
 
   let next = {
     ...state,
@@ -406,6 +460,8 @@ export function dealHand(state) {
     activePlayerIndex: firstToAct >= 0 ? firstToAct : bbIndex,
     actionLog: [],
     dealerIndex,
+    smallBlindIndex: sbIndex,
+    bigBlindIndex: bbIndex,
     winnerId: null,
     handNumber: state.handNumber + 1,
     handHistory: [
@@ -416,7 +472,7 @@ export function dealHand(state) {
         bigBlindName: players[bbIndex]?.name ?? '?',
         timestamp: Date.now(),
       },
-      ...previousHistory,
+      ...archiveCurrentHand(state),
     ],
     bettingRound: emptyBettingRound(state.bigBlind),
   };
@@ -427,154 +483,131 @@ export function dealHand(state) {
   const firstPlayer = next.players[next.activePlayerIndex];
   return pushLog(next, {
     type: 'info',
-    text: firstPlayer ? `${firstPlayer.name}, prima azione` : 'Nuova mano - preflop',
+    text: firstPlayer ? `${firstPlayer.name}, prima azione pre-flop` : 'Nuova mano - preflop',
   });
+}
+
+function finishIfOnlyOneCanWin(state) {
+  const contestants = activeContestants(state.players);
+  if (contestants.length !== 1) return null;
+  const winner = contestants[0];
+  return pushLog(
+    {
+      ...state,
+      players: state.players.map((player) => (
+        player.id === winner.id
+          ? { ...player, chips: player.chips + state.pot, status: 'winner' }
+          : player
+      )),
+      pot: 0,
+      currentBet: 0,
+      phase: PHASES.SHOWDOWN,
+      winnerId: winner.id,
+      bettingRound: emptyBettingRound(state.bigBlind),
+    },
+    {
+      type: 'win',
+      playerName: winner.name,
+      winnerIds: [winner.id],
+      text: 'vince - tutti fold',
+      amount: state.pot,
+    },
+  );
 }
 
 export function playerAction(state, action, options = {}) {
   if (state.phase === PHASES.IDLE || state.phase === PHASES.SHOWDOWN) return state;
 
-  const { activePlayerIndex, players, currentBet, pot } = state;
-  const active = players[activePlayerIndex];
-  if (!active || active.status !== 'active' || active.chips === 0) return state;
+  const actorIndex = state.activePlayerIndex;
+  const actor = state.players[actorIndex];
+  if (!actor || !isActionable(actor)) return state;
 
-  const minRaise = state.bettingRound?.minRaise ?? state.bigBlind;
-  const requestedRaise = Math.max(minRaise, options.betAmount ?? minRaise);
-  let updatedPlayers = [...players];
-  let newPot = pot;
-  let newCurrentBet = currentBet;
-  let bettingRound = state.bettingRound ?? emptyBettingRound(state.bigBlind);
+  let players = [...state.players];
+  let pot = state.pot;
+  let currentBet = state.currentBet;
+  let round = state.bettingRound ?? emptyBettingRound(state.bigBlind);
   let logEntry = null;
+  const toCall = Math.max(0, currentBet - actor.currentBet);
+  const minRaise = round.minRaise ?? state.bigBlind;
 
   if (action === 'fold') {
-    updatedPlayers[activePlayerIndex] = { ...active, status: 'folded' };
-    bettingRound = markActed(bettingRound, activePlayerIndex);
-    logEntry = { type: 'fold', playerName: active.name, text: 'ha fatto fold' };
+    players[actorIndex] = { ...actor, status: 'folded' };
+    round = markActed(round, actorIndex);
+    logEntry = { type: 'fold', playerName: actor.name, text: 'fold' };
   } else if (action === 'check') {
-    if (active.currentBet < currentBet) {
-      return pushLog(state, { type: 'info', text: 'Non puoi check - call o fold' });
+    if (toCall > 0) {
+      return pushLog(state, { type: 'info', text: 'Non puoi check: devi call, raise o fold' });
     }
-    bettingRound = markActed(bettingRound, activePlayerIndex);
-    logEntry = { type: 'check', playerName: active.name, text: 'check' };
+    round = markActed(round, actorIndex);
+    logEntry = { type: 'check', playerName: actor.name, text: 'check' };
   } else if (action === 'call') {
-    const toCall = Math.max(0, currentBet - active.currentBet);
-    const result = applyBet(updatedPlayers, activePlayerIndex, toCall, newPot);
-    updatedPlayers = result.players;
-    newPot = result.pot;
-    bettingRound = markActed(bettingRound, activePlayerIndex);
+    const result = applyBet(players, actorIndex, toCall, pot);
+    players = result.players;
+    pot = result.pot;
+    round = markActed(round, actorIndex);
     logEntry = {
       type: toCall > 0 ? 'call' : 'check',
-      playerName: active.name,
-      text: toCall > 0 && result.players[activePlayerIndex].chips === 0 ? 'call all-in' : (toCall > 0 ? 'call' : 'check'),
-      amount: result.added,
+      playerName: actor.name,
+      text: result.players[actorIndex].status === 'allin' && result.paid > 0 ? 'call all-in' : (toCall > 0 ? 'call' : 'check'),
+      amount: result.paid,
     };
-  } else if (action === 'raise') {
-    const toCall = Math.max(0, currentBet - active.currentBet);
-    if (active.chips <= toCall) {
-      return pushLog(state, { type: 'info', text: 'Chips insufficienti per rilanciare: call all-in o fold' });
+  } else if (action === 'raise' || action === 'allin') {
+    const wantedRaise = action === 'allin'
+      ? actor.chips - toCall
+      : Math.max(minRaise, options.betAmount ?? minRaise);
+    const result = applyBet(players, actorIndex, toCall + Math.max(0, wantedRaise), pot);
+    players = result.players;
+    pot = result.pot;
+
+    const newActorBet = players[actorIndex].currentBet;
+    const actualRaise = Math.max(0, newActorBet - currentBet);
+    currentBet = Math.max(currentBet, newActorBet);
+
+    if (actualRaise >= minRaise) {
+      round = resetActedAfterRaise(round, actorIndex, actualRaise);
+    } else {
+      round = markActed(round, actorIndex);
     }
 
-    const result = applyBet(updatedPlayers, activePlayerIndex, toCall + requestedRaise, newPot);
-    updatedPlayers = result.players;
-    newPot = result.pot;
-    newCurrentBet = updatedPlayers[activePlayerIndex].currentBet;
-
-    const actualRaise = Math.max(0, newCurrentBet - currentBet);
-    bettingRound = resetActedAfterRaise(
-      bettingRound,
-      activePlayerIndex,
-      actualRaise >= minRaise ? actualRaise : minRaise,
-    );
     logEntry = {
       type: 'raise',
-      playerName: active.name,
-      text: updatedPlayers[activePlayerIndex].chips === 0 ? `all-in a ${newCurrentBet}` : `raise a ${newCurrentBet}`,
-      amount: result.added,
-    };
-  } else if (action === 'allin') {
-    const allInAmount = active.chips;
-    const result = applyBet(updatedPlayers, activePlayerIndex, allInAmount, newPot);
-    updatedPlayers = result.players;
-    newPot = result.pot;
-    newCurrentBet = Math.max(currentBet, updatedPlayers[activePlayerIndex].currentBet);
-
-    const actualRaise = Math.max(0, newCurrentBet - currentBet);
-    bettingRound = actualRaise >= minRaise
-      ? resetActedAfterRaise(bettingRound, activePlayerIndex, actualRaise)
-      : markActed(bettingRound, activePlayerIndex);
-    logEntry = {
-      type: 'raise',
-      playerName: active.name,
-      text: `all-in a ${updatedPlayers[activePlayerIndex].currentBet}`,
-      amount: result.added,
+      playerName: actor.name,
+      text: players[actorIndex].status === 'allin' ? `all-in a ${newActorBet}` : `raise a ${newActorBet}`,
+      amount: result.paid,
     };
   }
 
   let next = pushLog(
-    { ...state, players: updatedPlayers, pot: newPot, currentBet: newCurrentBet, bettingRound },
+    { ...state, players, pot, currentBet, bettingRound: round },
     logEntry,
   );
 
-  const remainingActive = updatedPlayers.filter((p) => p.status === 'active');
-  if (remainingActive.length === 1) {
-    const winner = remainingActive[0];
-    const potWon = newPot;
-    const finalPlayers = updatedPlayers.map((p) =>
-      p.id === winner.id ? { ...p, status: 'winner', chips: p.chips + potWon } : p,
-    );
-    return pushLog(
-      {
-        ...next,
-        players: finalPlayers,
-        pot: 0,
-        phase: PHASES.SHOWDOWN,
-        winnerId: winner.id,
-        currentBet: 0,
-        bettingRound: emptyBettingRound(state.bigBlind),
-      },
-      {
-        type: 'win',
-        playerName: winner.name,
-        winnerIds: [winner.id],
-        text: 'vince - tutti fold',
-        amount: potWon,
-      },
-    );
+  const foldedWin = finishIfOnlyOneCanWin(next);
+  if (foldedWin) return foldedWin;
+
+  if (bettingRoundComplete(players, currentBet, round)) {
+    return nextStreet(next);
   }
 
-  if (isBettingRoundComplete(updatedPlayers, newCurrentBet, bettingRound)) {
-    return advancePhase({
-      ...next,
-      players: updatedPlayers,
-      pot: newPot,
-      currentBet: newCurrentBet,
-      bettingRound,
-    });
-  }
-
-  const nextIndex = getNextActionablePlayer(updatedPlayers, activePlayerIndex);
+  const nextIndex = getNextActionablePlayer(players, actorIndex);
   return {
     ...next,
-    players: updatedPlayers,
-    pot: newPot,
-    currentBet: newCurrentBet,
-    activePlayerIndex: nextIndex >= 0 ? nextIndex : activePlayerIndex,
-    bettingRound,
+    activePlayerIndex: nextIndex >= 0 ? nextIndex : actorIndex,
   };
 }
 
 export function getRandomBotAction(state) {
   const { players, activePlayerIndex, currentBet, bigBlind } = state;
-  const active = players[activePlayerIndex];
-  const toCall = Math.max(0, currentBet - active.currentBet);
+  const actor = players[activePlayerIndex];
+  const toCall = Math.max(0, currentBet - actor.currentBet);
   const canCheck = toCall === 0;
-  const canRaise = active.chips > toCall + bigBlind;
+  const canRaise = actor.chips > toCall + bigBlind;
   const actions = canCheck
     ? ['check', ...(canRaise ? ['raise'] : []), 'fold']
     : ['call', ...(canRaise ? ['raise'] : []), 'fold'];
   const weights = canCheck
-    ? [0.58, ...(canRaise ? [0.27] : []), 0.15]
-    : [0.68, ...(canRaise ? [0.22] : []), 0.1];
+    ? [0.62, ...(canRaise ? [0.25] : []), 0.13]
+    : [0.68, ...(canRaise ? [0.2] : []), 0.12];
 
   const r = Math.random();
   let acc = 0;
@@ -604,12 +637,12 @@ export function getPhaseLabel(phase) {
 }
 
 export function getHumanPlayer(state) {
-  return state.players.find((p) => p.isHuman);
+  return state.players.find((player) => player.isHuman);
 }
 
 export function syncHumanChipsInState(state, chips) {
   return {
     ...state,
-    players: state.players.map((p) => (p.isHuman ? { ...p, chips } : p)),
+    players: state.players.map((player) => (player.isHuman ? { ...player, chips } : player)),
   };
 }
