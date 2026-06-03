@@ -21,7 +21,7 @@
 
 .app__topbar {
   position: relative;
-  z-index: 20;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -34,20 +34,10 @@
   gap: 0.5rem;
 }
 
-.app__back {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
-  color: #c8d0d8;
-  cursor: pointer;
-}
-
-.app__back:hover {
-  border-color: #d4af37;
-  color: #ffd700;
+.app__topbar-title {
+  color: #f5edd5;
+  font-weight: 1000;
+  letter-spacing: 0.02em;
 }
 
 .app__room-code {
@@ -63,10 +53,20 @@
   gap: 0.75rem;
 }
 
+.app__profile-shortcut,
 .app__user-tag {
   font-weight: 700;
   color: #ffd700;
   font-size: 1rem;
+}
+
+.app__profile-shortcut {
+  min-height: 36px;
+  padding: 0.42rem 0.7rem;
+  background: #111923;
+  border: 1px solid rgba(224, 185, 63, 0.28);
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .app__user-chips {

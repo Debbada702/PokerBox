@@ -19,8 +19,8 @@ export default function AuthScreen({
     setError?.(null);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
     if (mode === 'login') {
       onLogin({ email, password });
     } else {
@@ -57,11 +57,11 @@ export default function AuthScreen({
         <form className="auth-screen__form" onSubmit={handleSubmit}>
           {mode === 'register' && (
             <label className="auth-screen__field">
-              <span>Nametag (nome al tavolo)</span>
+              <span>Nametag</span>
               <input
                 type="text"
                 value={nametag}
-                onChange={(e) => setNametag(e.target.value)}
+                onChange={(event) => setNametag(event.target.value)}
                 placeholder="Es. PokerKing99"
                 autoComplete="username"
                 maxLength={20}
@@ -75,7 +75,7 @@ export default function AuthScreen({
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="tua@email.com"
               autoComplete="email"
               required
@@ -87,7 +87,7 @@ export default function AuthScreen({
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="••••••••"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               minLength={6}
@@ -117,10 +117,6 @@ export default function AuthScreen({
             </button>
           </div>
         )}
-
-        <p className="auth-screen__hint">
-          Dati salvati in locale per ora. Collegamento SQL Server (Id, Nametag, Email, Password) in arrivo.
-        </p>
       </div>
     </div>
   );

@@ -8,10 +8,8 @@ export default function HomePage({
   onEnterLobby,
   onQuickPlay,
   onLogout,
-  onUpdateAccount,
-  accountLoading,
-  wallet,
   notice,
+  onNavigate,
 }) {
   const [joinCode, setJoinCode] = useState('');
   const [roomError, setRoomError] = useState(null);
@@ -58,12 +56,15 @@ export default function HomePage({
           <h1>PokerBox</h1>
         </div>
         <div className="home__user-bar">
+          <button type="button" className="home__profile-shortcut" onClick={() => onNavigate('profile')}>
+            <span>{user.nametag}</span>
+            <strong>{user.chips?.toLocaleString()} chips</strong>
+          </button>
           <AccountMenu
             user={user}
-            loading={accountLoading}
-            onUpdateAccount={onUpdateAccount}
             onLogout={onLogout}
-            wallet={wallet}
+            onNavigate={onNavigate}
+            triggerLabel="Menu"
           />
         </div>
       </header>

@@ -1,6 +1,6 @@
 .account-menu {
   position: relative;
-  z-index: 20;
+  z-index: 1000;
 }
 
 .account-menu__trigger {
@@ -11,10 +11,8 @@
   padding: 0.35rem 0.55rem;
   color: #f5edd5;
   cursor: pointer;
-  background:
-    linear-gradient(180deg, rgba(25, 32, 42, 0.92), rgba(5, 8, 13, 0.92)),
-    rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(224, 185, 63, 0.36);
+  background: #121923;
+  border: 1px solid rgba(224, 185, 63, 0.42);
   border-radius: 8px;
   box-shadow:
     0 8px 20px rgba(0, 0, 0, 0.35),
@@ -73,13 +71,12 @@
   right: 0;
   width: min(380px, calc(100vw - 1.5rem));
   padding: 0.9rem;
-  background:
-    linear-gradient(180deg, rgba(22, 29, 38, 0.98), rgba(5, 8, 12, 0.98)),
-    #080c12;
-  border: 1px solid rgba(224, 185, 63, 0.34);
-  border-radius: 8px;
+  color: #f2f6fb;
+  background: #0d131c;
+  border: 1px solid rgba(224, 185, 63, 0.44);
+  border-radius: 10px;
   box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.65),
+    0 28px 70px rgba(0, 0, 0, 0.78),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -107,15 +104,21 @@
 .account-menu__ghost {
   min-height: 40px;
   padding: 0.62rem 0.72rem;
-  color: #edf4ff;
+  color: #f2f6fb;
   font-size: 0.8rem;
   font-weight: 900;
   text-align: left;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #151f2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 7px;
   cursor: pointer;
+}
+
+.account-menu__nav button:hover,
+.account-menu__ghost:hover {
+  border-color: rgba(224, 185, 63, 0.46);
+  background: #1a2736;
 }
 
 .account-menu__nav .account-menu__danger {

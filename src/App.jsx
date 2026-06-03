@@ -24,6 +24,7 @@ import AuthScreen from './components/AuthScreen.jsx';
 import HomePage from './components/HomePage.jsx';
 import RoomLobby from './components/RoomLobby.jsx';
 import AccountMenu from './components/AccountMenu.jsx';
+import { ProfilePage, WalletPage, TermsPage, InfoPage } from './components/AppPages.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import { useWallet } from './hooks/useWallet.js';
 import './App.css';
@@ -70,6 +71,18 @@ function App() {
   );
 
   const walletForHome = { ...wallet, onChipsAdded: handleChipsFromBotti };
+  const termsKey = user?.id ? `pokerbox_terms_${user.id}` : null;
+  const termsAccepted = termsKey ? localStorage.getItem(termsKey) === 'accepted' : false;
+
+  const acceptTerms = useCallback(() => {
+    if (termsKey) localStorage.setItem(termsKey, 'accepted');
+    setScreen('home');
+  }, [termsKey]);
+
+  const navigatePage = useCallback((target) => {
+    setScreen(target);
+  }, []);
+  const pageBackTarget = gameState ? 'game' : 'home';
 
   const enterLobby = useCallback((room) => {
     gameStartingRef.current = false;
@@ -333,6 +346,10 @@ function App() {
     );
   }
 
+  if (!termsAccepted && screen !== 'terms') {
+    return <TermsPage mustAccept onAccept={acceptTerms} />;
+  }
+
   if (screen === 'home') {
     return (
       <HomePage
@@ -340,12 +357,33 @@ function App() {
         onEnterLobby={enterLobby}
         onQuickPlay={startQuickGame}
         onLogout={handleLogout}
-        onUpdateAccount={updateAccount}
-        accountLoading={authLoading}
-        wallet={walletForHome}
         notice={lobbyNotice}
+        onNavigate={navigatePage}
       />
     );
+  }
+
+  if (screen === 'profile') {
+    return (
+      <ProfilePage
+        user={user}
+        loading={authLoading}
+        onUpdateAccount={updateAccount}
+        onBack={() => setScreen(pageBackTarget)}
+      />
+    );
+  }
+
+  if (screen === 'wallet') {
+    return <WalletPage wallet={walletForHome} onBack={() => setScreen(pageBackTarget)} />;
+  }
+
+  if (screen === 'terms') {
+    return <TermsPage onBack={() => setScreen(pageBackTarget)} onAccept={termsAccepted ? null : acceptTerms} />;
+  }
+
+  if (screen === 'security' || screen === 'support') {
+    return <InfoPage type={screen} onBack={() => setScreen(pageBackTarget)} />;
   }
 
   if (screen === 'lobby' && activeRoom?.code) {
@@ -367,21 +405,24 @@ function App() {
   return (
     <div className="app app--game">
       <header className="app__topbar">
-        <AccountMenu
-          user={user}
-          loading={authLoading}
-          onUpdateAccount={updateAccount}
-          onLogout={handleLogout}
-          onLeaveTable={leaveGame}
-          wallet={walletForHome}
-          compact
-          triggerLabel="<- Menu"
-        />
+        <div className="app__topbar-title">
+          <span>PokerBox</span>
+        </div>
         <div className="app__user">
           {activeRoom?.code && activeRoom.code !== 'LOCAL' && (
             <span className="app__room-code">Stanza {activeRoom.code}</span>
           )}
-          <span className="app__user-tag">{user.nametag}</span>
+          <button type="button" className="app__profile-shortcut" onClick={() => setScreen('profile')}>
+            {user.nametag}
+          </button>
+          <AccountMenu
+            user={user}
+            onLogout={handleLogout}
+            onLeaveTable={leaveGame}
+            onNavigate={navigatePage}
+            compact
+            triggerLabel="Menu"
+          />
         </div>
       </header>
 
