@@ -367,20 +367,21 @@ function App() {
   return (
     <div className="app app--game">
       <header className="app__topbar">
-        <button type="button" className="app__back" onClick={leaveGame}>
-          {'<- Menu'}
-        </button>
+        <AccountMenu
+          user={user}
+          loading={authLoading}
+          onUpdateAccount={updateAccount}
+          onLogout={handleLogout}
+          onLeaveTable={leaveGame}
+          wallet={walletForHome}
+          compact
+          triggerLabel="<- Menu"
+        />
         <div className="app__user">
           {activeRoom?.code && activeRoom.code !== 'LOCAL' && (
             <span className="app__room-code">Stanza {activeRoom.code}</span>
           )}
-          <AccountMenu
-            user={user}
-            loading={authLoading}
-            onUpdateAccount={updateAccount}
-            onLogout={handleLogout}
-            compact
-          />
+          <span className="app__user-tag">{user.nametag}</span>
         </div>
       </header>
 

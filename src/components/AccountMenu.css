@@ -71,7 +71,7 @@
   position: absolute;
   top: calc(100% + 0.55rem);
   right: 0;
-  width: min(340px, calc(100vw - 1.5rem));
+  width: min(380px, calc(100vw - 1.5rem));
   padding: 0.9rem;
   background:
     linear-gradient(180deg, rgba(22, 29, 38, 0.98), rgba(5, 8, 12, 0.98)),
@@ -83,10 +83,45 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.account-menu__back {
+  width: fit-content;
+  margin-bottom: 0.7rem;
+  padding: 0.35rem 0.55rem;
+  color: #cbd7e5;
+  font-size: 0.76rem;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.account-menu__nav,
 .account-menu__form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.account-menu__nav button,
+.account-menu__ghost {
+  min-height: 40px;
+  padding: 0.62rem 0.72rem;
+  color: #edf4ff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.account-menu__nav .account-menu__danger {
+  color: #ffb9b9;
+  background: rgba(92, 20, 30, 0.35);
+  border-color: rgba(255, 120, 120, 0.28);
 }
 
 .account-menu__field {
@@ -103,6 +138,29 @@
   letter-spacing: 0.08em;
 }
 
+.account-menu__verify {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 0.5rem;
+}
+
+.account-menu__verify button {
+  color: #171103;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: #f0d15b;
+  border: 1px solid #705516;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.account-menu__verify button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.account-menu__verify input,
 .account-menu__field input {
   width: 100%;
   min-height: 40px;
@@ -113,6 +171,50 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 7px;
   outline: none;
+}
+
+.account-menu__wallet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.account-menu__wallet input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.62rem 0.72rem;
+  color: #f4f8ff;
+  font-size: 0.92rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+}
+
+.account-menu__wallet small {
+  color: #d4af37;
+}
+
+.account-menu__wallet-addr {
+  margin: 0;
+  color: #9ec89e;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+.account-menu__wallet-balance {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.75rem;
+  background: rgba(107, 45, 138, 0.2);
+  border: 1px solid rgba(180, 100, 220, 0.3);
+  border-radius: 8px;
+}
+
+.account-menu__wallet-balance strong {
+  color: #e8b0ff;
+  font-size: 1.25rem;
 }
 
 .account-menu__field input:focus {
@@ -139,15 +241,10 @@
   border: 1px solid rgba(255, 120, 120, 0.28);
 }
 
-.account-menu__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
-}
-
 .account-menu__save,
 .account-menu__logout {
   min-height: 38px;
+  width: 100%;
   color: #fff;
   font-size: 0.78rem;
   font-weight: 800;

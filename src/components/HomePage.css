@@ -69,6 +69,12 @@
   .home__grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .home__grid--single {
+    max-width: 620px;
+    margin: 0 auto;
+    grid-template-columns: 1fr;
+  }
 }
 
 .home__card {
@@ -200,50 +206,6 @@
   color: #fff;
 }
 
-.home__wallet-connected {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.home__wallet-addr {
-  margin: 0;
-  font-family: ui-monospace, monospace;
-  font-size: 0.7rem;
-  color: #9ec89e;
-}
-
-.home__botti-bal {
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 0.75rem;
-  background: rgba(107, 45, 138, 0.2);
-  border-radius: 8px;
-  border: 1px solid rgba(180, 100, 220, 0.3);
-}
-
-.home__botti-bal strong {
-  font-size: 1.25rem;
-  color: #e8b0ff;
-}
-
-.home__convert {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.home__convert input {
-  padding: 0.65rem;
-  font-size: 1rem;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: #fff;
-}
-
 .home__error {
   margin: 0.5rem 0 0;
   font-size: 0.85rem;
@@ -265,11 +227,4 @@
   color: #e8c547;
   font-size: 0.9rem;
   text-align: center;
-}
-
-.home__footer {
-  margin-top: 2rem;
-  text-align: center;
-  font-size: 0.65rem;
-  color: #4a5a6a;
 }

@@ -380,6 +380,16 @@ export function dealHand(state) {
   const sbIndex = isHeadsUp ? dealerIndex : getNextActivePlayer(players, dealerIndex);
   const bbIndex = getNextActivePlayer(players, sbIndex);
   const firstToAct = isHeadsUp ? sbIndex : getNextActionablePlayer(players, bbIndex);
+  const previousHand = state.handNumber > 0
+    ? {
+      ...(state.handHistory?.[0] ?? { handNumber: state.handNumber }),
+      actions: state.actionLog ?? [],
+    }
+    : null;
+  const previousHistory = previousHand
+    ? [previousHand, ...(state.handHistory ?? []).slice(1)]
+    : (state.handHistory ?? []);
+
   players = players.map((p, i) => ({
     ...p,
     isSmallBlind: i === sbIndex,
@@ -395,6 +405,7 @@ export function dealHand(state) {
     pot: 0,
     currentBet: 0,
     activePlayerIndex: firstToAct >= 0 ? firstToAct : bbIndex,
+    actionLog: [],
     dealerIndex,
     winnerId: null,
     handNumber: state.handNumber + 1,
@@ -406,7 +417,7 @@ export function dealHand(state) {
         bigBlindName: players[bbIndex]?.name ?? '?',
         timestamp: Date.now(),
       },
-      ...(state.handHistory ?? []),
+      ...previousHistory,
     ],
     bettingRound: emptyBettingRound(state.bigBlind),
   };

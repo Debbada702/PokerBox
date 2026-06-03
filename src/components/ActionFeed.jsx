@@ -16,10 +16,13 @@ const TYPE_ICONS = {
 export default function ActionFeed({ entries, handNumber, dealerName, handHistory = [] }) {
   const [selectedHand, setSelectedHand] = useState('');
   const currentHand = handHistory.find((hand) => hand.handNumber === handNumber);
+  const selectedHandNumber = selectedHand || String(handNumber);
   const selectedSummary = useMemo(() => {
-    const target = selectedHand || String(handNumber);
-    return handHistory.find((hand) => String(hand.handNumber) === target) ?? currentHand;
-  }, [currentHand, handHistory, handNumber, selectedHand]);
+    return handHistory.find((hand) => String(hand.handNumber) === selectedHandNumber) ?? currentHand;
+  }, [currentHand, handHistory, selectedHandNumber]);
+  const visibleEntries = selectedHandNumber === String(handNumber)
+    ? entries
+    : (selectedSummary?.actions ?? []);
 
   return (
     <div className="action-feed" aria-live="polite">
@@ -48,9 +51,9 @@ export default function ActionFeed({ entries, handNumber, dealerName, handHistor
         )}
       </div>
 
-      {entries.length > 0 ? (
+      {visibleEntries.length > 0 ? (
         <ul className="action-feed__history">
-          {entries.map((entry) => (
+          {visibleEntries.map((entry) => (
             <li key={entry.id} className={`action-feed__item action-feed__item--${entry.type}`}>
               <span className="action-feed__item-icon" aria-hidden>
                 {TYPE_ICONS[entry.type] ?? 'i'}
