@@ -72,14 +72,13 @@ export function createInitialState(playerCount = 6, humanProfile = null) {
 }
 
 export function createGameFromRoster(roster, humanProfile = null) {
-  const humanChips = humanProfile?.chips ?? 10_000;
   const players = roster.map((seat, i) => ({
     id: i,
     userId: seat.userId,
     name: seat.nametag,
     holeCards: [],
     status: 'waiting',
-    chips: seat.isHuman ? humanChips : 10_000,
+    chips: seat.isBot ? 10_000 : (seat.chips ?? (seat.isHuman ? humanProfile?.chips ?? 0 : 0)),
     currentBet: 0,
     committed: 0,
     isHuman: !!seat.isHuman,

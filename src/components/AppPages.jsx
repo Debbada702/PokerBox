@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { joinRoom, listPublicRooms } from '../services/roomService.js';
 import './AppPages.css';
 
 function makeVerificationCode() {
@@ -135,6 +136,8 @@ export function WalletPage({ wallet, onBack }) {
 }
 
 export function TermsPage({ onBack, onAccept, mustAccept = false }) {
+  const [accepted, setAccepted] = useState(false);
+
   return (
     <PageShell title="Termini e condizioni" eyebrow="PokerBox" onBack={mustAccept ? undefined : onBack}>
       <section className="page-card page-terms">
@@ -147,20 +150,71 @@ export function TermsPage({ onBack, onAccept, mustAccept = false }) {
         <h2>Condotta</h2>
         <p>Non sono consentiti abuso della chat, tentativi di manipolazione, automazioni scorrette o uso del servizio per scopi illeciti.</p>
         <label className="page-accept">
-          <input id="terms-accept-check" type="checkbox" />
+          <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
           <span>Ho letto e accetto i termini e condizioni.</span>
         </label>
         {onAccept && (
           <button
             type="button"
             className="page-primary"
-            onClick={() => {
-              if (document.getElementById('terms-accept-check')?.checked) onAccept();
-            }}
+            disabled={!accepted}
+            onClick={onAccept}
           >
             Accetta e continua
           </button>
         )}
+      </section>
+    </PageShell>
+  );
+}
+
+export function PublicRoomsPage({ user, onEnterLobby, onBack }) {
+  const [rooms, setRooms] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const refresh = async () => {
+      const result = await listPublicRooms();
+      if (!alive) return;
+      if (result.ok) {
+        setRooms(result.rooms);
+        setError(null);
+      } else {
+        setError(result.error);
+      }
+    };
+    refresh();
+    const id = setInterval(refresh, 2500);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  const enter = async (code) => {
+    const result = await joinRoom(code, user);
+    if (result.ok) onEnterLobby(result.room);
+    else setError(result.error);
+  };
+
+  return (
+    <PageShell title="Stanze pubbliche" eyebrow="Lobby aperte" onBack={onBack}>
+      <section className="page-card page-stack">
+        {error && <p className="page-message page-message--error">{error}</p>}
+        {rooms.length === 0 ? (
+          <p>Nessuna stanza pubblica disponibile.</p>
+        ) : rooms.map((room) => (
+          <div key={room.code} className="page-room">
+            <div>
+              <strong>{room.code}</strong>
+              <span>{room.hostNametag} · {room.players.length}/{room.maxSeats} giocatori</span>
+            </div>
+            <button type="button" className="page-primary" onClick={() => enter(room.code)}>
+              Entra
+            </button>
+          </div>
+        ))}
       </section>
     </PageShell>
   );

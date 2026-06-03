@@ -176,6 +176,32 @@
   border-radius: 8px;
 }
 
+.page-room {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.page-room div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.page-room strong {
+  color: #f0d15b;
+  letter-spacing: 0.12em;
+}
+
+.page-room span {
+  color: #9eb0c4;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 560px) {
   .page-shell {
     padding: 0.8rem;

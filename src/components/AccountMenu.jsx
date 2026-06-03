@@ -2,12 +2,12 @@ import { useState } from 'react';
 import './AccountMenu.css';
 
 export default function AccountMenu({
-  user,
   onLogout,
   onLeaveTable,
   compact = false,
   triggerLabel = null,
   onNavigate,
+  inGame = false,
 }) {
   const [open, setOpen] = useState(false);
 
@@ -20,8 +20,6 @@ export default function AccountMenu({
     onNavigate?.(target);
   };
 
-  const triggerText = triggerLabel ?? user?.nametag;
-
   return (
     <div className={`account-menu ${compact ? 'account-menu--compact' : ''}`}>
       <button
@@ -30,29 +28,26 @@ export default function AccountMenu({
         onClick={toggleOpen}
         aria-expanded={open}
       >
-        {!triggerLabel && <span className="account-menu__avatar">{user?.nametag?.charAt(0) ?? '?'}</span>}
-        <span className="account-menu__summary">
-          <span className="account-menu__name">{triggerText}</span>
-          {!compact && !triggerLabel && <span className="account-menu__chips">{user?.chips?.toLocaleString()} chips</span>}
-        </span>
-        <span className="account-menu__chevron" aria-hidden>⌄</span>
+        <span className="account-menu__hamburger" aria-hidden><span /><span /><span /></span>
+        <span className="account-menu__name">{triggerLabel ?? 'Menu'}</span>
       </button>
 
       {open && (
         <div className="account-menu__panel" role="dialog" aria-label="Menu">
           <div className="account-menu__nav">
-            <button type="button" onClick={() => go('profile')}>Profilo e impostazioni</button>
-            <button type="button" onClick={() => go('wallet')}>Wallet BottiCoin</button>
-            <button type="button" onClick={() => go('terms')}>Termini e condizioni</button>
-            <button type="button" onClick={() => go('security')}>Sicurezza account</button>
-            <button type="button" onClick={() => go('support')}>Supporto</button>
+            {!inGame && <button type="button" onClick={() => go('profile')}><span>⚙</span>Profilo e impostazioni</button>}
+            <button type="button" onClick={() => go('wallet')}><span>◇</span>Wallet BottiCoin</button>
+            <button type="button" onClick={() => go('publicRooms')}><span>▦</span>Stanze pubbliche</button>
+            <button type="button" onClick={() => go('terms')}><span>§</span>Termini e condizioni</button>
+            {!inGame && <button type="button" onClick={() => go('security')}><span>●</span>Sicurezza account</button>}
+            <button type="button" onClick={() => go('support')}><span>?</span>Supporto</button>
             {onLeaveTable && (
               <button type="button" className="account-menu__danger" onClick={onLeaveTable}>
-                Abbandona tavolo
+                <span>×</span>Abbandona tavolo
               </button>
             )}
             <button type="button" className="account-menu__logout" onClick={onLogout}>
-              Esci
+              <span>↪</span>Esci
             </button>
           </div>
         </div>

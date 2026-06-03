@@ -14,13 +14,14 @@ export default function HomePage({
   const [joinCode, setJoinCode] = useState('');
   const [roomError, setRoomError] = useState(null);
   const [createdRoom, setCreatedRoom] = useState(null);
+  const [isPublicRoom, setIsPublicRoom] = useState(false);
   const [copied, setCopied] = useState(false);
   const [roomLoading, setRoomLoading] = useState(false);
 
   const handleCreateRoom = async () => {
     setRoomError(null);
     setRoomLoading(true);
-    const result = await createRoom(user);
+    const result = await createRoom(user, isPublicRoom);
     setRoomLoading(false);
     if (result.ok) {
       setCreatedRoom(result);
@@ -51,6 +52,11 @@ export default function HomePage({
   return (
     <div className="home">
       <header className="home__header">
+          <AccountMenu
+            onLogout={onLogout}
+          onNavigate={onNavigate}
+          triggerLabel="Menu"
+        />
         <div className="home__brand">
           <span className="home__logo">♠</span>
           <h1>PokerBox</h1>
@@ -60,12 +66,6 @@ export default function HomePage({
             <span>{user.nametag}</span>
             <strong>{user.chips?.toLocaleString()} chips</strong>
           </button>
-          <AccountMenu
-            user={user}
-            onLogout={onLogout}
-            onNavigate={onNavigate}
-            triggerLabel="Menu"
-          />
         </div>
       </header>
 
@@ -75,6 +75,22 @@ export default function HomePage({
         <section className="home__card home__card--play">
           <h2>Gioca</h2>
           <p className="home__card-desc">Crea una stanza o unisciti con codice / link invito</p>
+          <div className="home__visibility">
+            <button
+              type="button"
+              className={!isPublicRoom ? 'home__visibility-btn home__visibility-btn--active' : 'home__visibility-btn'}
+              onClick={() => setIsPublicRoom(false)}
+            >
+              Privata
+            </button>
+            <button
+              type="button"
+              className={isPublicRoom ? 'home__visibility-btn home__visibility-btn--active' : 'home__visibility-btn'}
+              onClick={() => setIsPublicRoom(true)}
+            >
+              Pubblica
+            </button>
+          </div>
 
           <button type="button" className="home__btn home__btn--primary" onClick={handleCreateRoom} disabled={roomLoading}>
             {roomLoading ? 'Creazione...' : 'Crea stanza'}

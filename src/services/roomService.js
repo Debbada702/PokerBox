@@ -47,8 +47,8 @@ export async function getRoom(code) {
   return rooms[code.toUpperCase()] ?? null;
 }
 
-export async function createRoom(host) {
-  if (isSupabaseConfigured) return createRoomSupabase(host);
+export async function createRoom(host, isPublic = false) {
+  if (isSupabaseConfigured) return createRoomSupabase(host, isPublic);
 
   const rooms = loadRooms();
   let code = generateCode();
@@ -60,11 +60,13 @@ export async function createRoom(host) {
     hostNametag: host.nametag,
     createdAt: new Date().toISOString(),
     status: 'waiting',
+    isPublic,
     maxSeats: MAX_SEATS,
     players: [
       {
         id: host.id,
         nametag: host.nametag,
+        chips: host.chips,
         joinedAt: new Date().toISOString(),
       },
     ],
@@ -89,8 +91,9 @@ export async function joinRoom(code, user) {
 
   if (!room.players.some((p) => p.id === user.id)) {
     room.players.push({
-      id: user.id,
-      nametag: user.nametag,
+        id: user.id,
+        nametag: user.nametag,
+        chips: user.chips,
       joinedAt: new Date().toISOString(),
     });
     rooms[clean] = room;
@@ -209,6 +212,14 @@ export async function sendRoomMessage(code, user, text) {
   return { ok: true, messages: room.messages };
 }
 
+export async function listPublicRooms() {
+  if (isSupabaseConfigured) return listPublicRoomsSupabase();
+  const rooms = Object.values(loadRooms())
+    .filter((room) => room.isPublic && room.status === 'waiting')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return { ok: true, rooms };
+}
+
 export function getRoomFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get('room')?.toUpperCase() ?? null;
@@ -221,6 +232,7 @@ export function buildRoster(room, startMode, currentUser) {
     roster.push({
       userId: currentUser.id,
       nametag: currentUser.nametag,
+      chips: currentUser.chips,
       isHuman: true,
       isBot: false,
     });
@@ -238,6 +250,7 @@ export function buildRoster(room, startMode, currentUser) {
   const humans = room.players.map((p) => ({
     userId: p.id,
     nametag: p.nametag,
+    chips: p.id === currentUser.id ? currentUser.chips : (p.chips ?? 0),
     isHuman: p.id === currentUser.id,
     isBot: false,
   }));
@@ -299,6 +312,7 @@ function roomFromSupabase(row) {
     startedAt: row.started_at,
     gameState: row.game_state,
     gameUpdatedAt: row.game_updated_at,
+    isPublic: !!row.is_public,
     players,
   };
 }
@@ -307,7 +321,7 @@ async function getRoomSupabase(code) {
   const clean = code?.toUpperCase();
   if (!clean) return null;
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from(ROOMS_TABLE)
     .select(`
       code,
@@ -320,26 +334,57 @@ async function getRoomSupabase(code) {
       started_at,
       game_state,
       game_updated_at,
+      is_public,
       room_players(user_id, nametag, joined_at)
     `)
     .eq('code', clean)
     .maybeSingle();
 
+  if (error?.message?.includes('is_public')) {
+    ({ data, error } = await supabase
+      .from(ROOMS_TABLE)
+      .select(`
+        code,
+        host_id,
+        host_nametag,
+        created_at,
+        status,
+        max_seats,
+        start_mode,
+        started_at,
+        game_state,
+        game_updated_at,
+        room_players(user_id, nametag, joined_at)
+      `)
+      .eq('code', clean)
+      .maybeSingle());
+  }
+
   if (error) return null;
   return roomFromSupabase(data);
 }
 
-async function createRoomSupabase(host) {
+async function createRoomSupabase(host, isPublic = false) {
   let code = generateCode();
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const { error } = await supabase.from(ROOMS_TABLE).insert({
+    let { error } = await supabase.from(ROOMS_TABLE).insert({
       code,
       host_id: host.id,
       host_nametag: host.nametag,
       status: 'waiting',
       max_seats: MAX_SEATS,
+      is_public: isPublic,
     });
+    if (error?.message?.includes('is_public')) {
+      ({ error } = await supabase.from(ROOMS_TABLE).insert({
+        code,
+        host_id: host.id,
+        host_nametag: host.nametag,
+        status: 'waiting',
+        max_seats: MAX_SEATS,
+      }));
+    }
 
     if (!error) {
       const { error: playerError } = await supabase.from(ROOM_PLAYERS_TABLE).insert({
@@ -357,6 +402,38 @@ async function createRoomSupabase(host) {
   }
 
   return { ok: false, error: 'Impossibile creare una stanza unica' };
+}
+
+async function listPublicRoomsSupabase() {
+  const { data, error } = await supabase
+    .from(ROOMS_TABLE)
+    .select(`
+      code,
+      host_id,
+      host_nametag,
+      created_at,
+      status,
+      max_seats,
+      start_mode,
+      started_at,
+      game_state,
+      game_updated_at,
+      is_public,
+      room_players(user_id, nametag, joined_at)
+    `)
+    .eq('status', 'waiting')
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (error) {
+    return {
+      ok: false,
+      error: 'Per usare le stanze pubbliche aggiungi la colonna is_public alla tabella rooms.',
+      rooms: [],
+    };
+  }
+  return { ok: true, rooms: (data ?? []).map(roomFromSupabase) };
 }
 
 async function joinRoomSupabase(code, user) {

@@ -24,7 +24,7 @@ import AuthScreen from './components/AuthScreen.jsx';
 import HomePage from './components/HomePage.jsx';
 import RoomLobby from './components/RoomLobby.jsx';
 import AccountMenu from './components/AccountMenu.jsx';
-import { ProfilePage, WalletPage, TermsPage, InfoPage } from './components/AppPages.jsx';
+import { ProfilePage, WalletPage, TermsPage, InfoPage, PublicRoomsPage } from './components/AppPages.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import { useWallet } from './hooks/useWallet.js';
 import './App.css';
@@ -378,6 +378,10 @@ function App() {
     return <WalletPage wallet={walletForHome} onBack={() => setScreen(pageBackTarget)} />;
   }
 
+  if (screen === 'publicRooms') {
+    return <PublicRoomsPage user={user} onEnterLobby={enterLobby} onBack={() => setScreen(pageBackTarget)} />;
+  }
+
   if (screen === 'terms') {
     return <TermsPage onBack={() => setScreen(pageBackTarget)} onAccept={termsAccepted ? null : acceptTerms} />;
   }
@@ -416,12 +420,12 @@ function App() {
             {user.nametag}
           </button>
           <AccountMenu
-            user={user}
             onLogout={handleLogout}
             onLeaveTable={leaveGame}
             onNavigate={navigatePage}
             compact
             triggerLabel="Menu"
+            inGame
           />
         </div>
       </header>
