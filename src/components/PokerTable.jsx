@@ -69,6 +69,7 @@ export default function PokerTable({
   const minRaise = Math.min(gameState.bettingRound?.minRaise ?? gameState.bigBlind ?? 20, Math.max(1, maxRaise));
   const humanBlindRole = human?.role === 'sb' ? 'small' : human?.role === 'bb' ? 'big' : null;
   const latest = actionLog?.[0] ?? null;
+  const hasRealSidePots = sidePots?.length > 1 && players.some((player) => player.isAllIn);
 
   const roleRows = [
     ['D', dealerPlayer],
@@ -129,7 +130,7 @@ export default function PokerTable({
                     <span className="poker-table__pot-value">{pot.toLocaleString()}</span>
                   </div>
 
-                  {sidePots?.length > 1 && (
+                  {hasRealSidePots && (
                     <div className="poker-table__sidepots">
                       {sidePots.map((sidePot, index) => (
                         <span key={`${sidePot.amount}-${index}`}>

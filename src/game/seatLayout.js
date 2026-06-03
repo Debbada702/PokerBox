@@ -8,8 +8,8 @@ const OPPONENT_POSITIONS = {
   1: ['top'],
   2: ['top-left', 'top-right'],
   3: ['left', 'top', 'right'],
-  4: ['bottom-left', 'top-left', 'top-right', 'bottom-right'],
-  5: ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right'],
+  4: ['left', 'top-left', 'top-right', 'right'],
+  5: ['left', 'top-left', 'top', 'top-right', 'right'],
 };
 
 export function splitLocalAndOpponents(players) {

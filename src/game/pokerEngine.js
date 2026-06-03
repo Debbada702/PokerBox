@@ -13,7 +13,7 @@ export const PHASES = {
 
 export const BIG_BLIND = 20;
 export const SMALL_BLIND = Math.floor(BIG_BLIND / 2);
-export const CHIP_VALUES = [5, 10, 20, 50, 100, 250, 500];
+export const CHIP_VALUES = [20, 50, 100, 200, 500, 1000];
 
 const BOT_NAMES = ['Alex', 'Mia', 'Leo', 'Sara', 'Max', 'Eva'];
 const SUITS = ['\u2660', '\u2665', '\u2666', '\u2663'];

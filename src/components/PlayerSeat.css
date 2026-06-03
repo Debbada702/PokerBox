@@ -15,30 +15,30 @@
 
 /* Avversari: arco superiore (tu sei sotto il monitor) */
 .player-seat--top {
-  top: 7%;
+  top: 1%;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .player-seat--top-left {
-  top: 20%;
-  left: 13%;
+  top: 18%;
+  left: 12%;
 }
 
 .player-seat--top-right {
-  top: 20%;
-  right: 13%;
+  top: 18%;
+  right: 12%;
 }
 
 .player-seat--left {
-  top: 48%;
-  left: 4%;
+  top: 58%;
+  left: 6%;
   transform: translateY(-50%);
 }
 
 .player-seat--right {
-  top: 48%;
-  right: 4%;
+  top: 58%;
+  right: 6%;
   transform: translateY(-50%);
 }
 
@@ -104,7 +104,7 @@
 .player-seat__cards {
   display: flex;
   gap: 2px;
-  min-height: 46px;
+  min-height: 42px;
 }
 
 .player-seat__cards .playing-card:nth-child(1) {
@@ -122,7 +122,7 @@
   flex-direction: column;
   align-items: center;
   padding: 0.24rem 0.5rem;
-  min-width: 78px;
+  min-width: 82px;
   background:
     linear-gradient(180deg, rgba(22, 29, 38, 0.9), rgba(3, 6, 10, 0.88)),
     rgba(0, 0, 0, 0.72);
@@ -144,7 +144,7 @@
 
 .player-seat__turn-badge {
   position: absolute;
-  top: -16px;
+  top: -15px;
   left: 50%;
   min-width: 62px;
   padding: 0.16rem 0.42rem;

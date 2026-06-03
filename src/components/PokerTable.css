@@ -6,7 +6,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 0.55rem 0.85rem 0.7rem;
+  padding: 0.45rem 0.85rem 0.62rem;
   margin: 0 auto;
 }
 
@@ -28,7 +28,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(190px, 230px) minmax(620px, 1fr) minmax(230px, 300px);
-  gap: 0.85rem;
+  gap: 0.75rem;
   align-items: stretch;
   padding-top: 0;
 }
@@ -47,14 +47,14 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(320px, 1fr) auto;
-  gap: 0.52rem;
+  grid-template-rows: minmax(300px, 0.92fr) auto;
+  gap: 0.42rem;
 }
 
 .poker-table {
   position: relative;
-  width: min(100%, 980px);
-  aspect-ratio: 2 / 1.12;
+  width: min(100%, 900px);
+  aspect-ratio: 2 / 1.04;
 }
 
 .poker-table__rail {
@@ -122,7 +122,7 @@
 .poker-table__phase-strip {
   position: absolute;
   z-index: 4;
-  top: 11%;
+  top: 25%;
   left: 50%;
   min-width: 190px;
   display: flex;
@@ -146,7 +146,7 @@
 .poker-table__center {
   position: absolute;
   z-index: 5;
-  top: 51%;
+  top: 54%;
   left: 50%;
   display: flex;
   flex-direction: column;
@@ -279,14 +279,14 @@
   z-index: 8;
   display: flex;
   flex-direction: column;
-  gap: 0.38rem;
+  gap: 0.34rem;
   min-height: 0;
 }
 
 .poker-room__turn-status {
   width: 100%;
-  max-width: 720px;
-  min-height: 32px;
+  max-width: 760px;
+  min-height: 30px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -309,7 +309,7 @@
 
 .poker-room__roles {
   width: 100%;
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -362,8 +362,8 @@
 
 @media (min-width: 900px) {
   .poker-table {
-    width: min(100%, 980px);
-    max-height: min(48vh, 520px);
+    width: min(100%, 900px);
+    max-height: min(43vh, 430px);
   }
 
   .poker-room__footer {
@@ -378,8 +378,8 @@
   }
 
   .poker-table {
-    width: min(100%, 900px);
-    max-height: 42vh;
+    width: min(100%, 820px);
+    max-height: 39vh;
   }
 
   .poker-room__arena {
@@ -418,11 +418,11 @@
   }
 
   .poker-room__table-zone {
-    min-height: 320px;
+    min-height: 300px;
   }
 
   .poker-table {
-    width: min(100%, 860px);
+    width: min(100%, 820px);
   }
 }
 
@@ -434,7 +434,7 @@
   }
 
   .poker-room__table-zone {
-    min-height: 300px;
+    min-height: 280px;
     padding-top: 0.75rem;
   }
 
