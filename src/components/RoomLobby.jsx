@@ -4,6 +4,7 @@ import {
   kickPlayer,
   buildInviteLink,
   MAX_SEATS,
+  GAME_TYPES,
   START_MODES,
   validateStart,
 } from '../services/roomService.js';
@@ -21,12 +22,14 @@ export default function RoomLobby({
   const [copied, setCopied] = useState(false);
 
   const isHost = room?.hostId === user.id;
+  const isBlackjack = room?.gameType === GAME_TYPES.BLACKJACK;
+  const maxSeats = room?.maxSeats ?? (isBlackjack ? 4 : MAX_SEATS);
   const inviteLink = buildInviteLink(roomCode);
 
   const refresh = useCallback(async () => {
     const latest = await getRoom(roomCode);
     if (!latest) {
-      onLeave({ kicked: true, reason: 'La stanza non esiste più' });
+      onLeave({ kicked: true, reason: 'La stanza non esiste piu' });
       return;
     }
     if (!latest.players.some((p) => p.id === user.id)) {
@@ -61,11 +64,8 @@ export default function RoomLobby({
   const handleKick = async (targetId) => {
     setError(null);
     const result = await kickPlayer(roomCode, user.id, targetId);
-    if (result.ok) {
-      setRoom(result.room);
-    } else {
-      setError(result.error);
-    }
+    if (result.ok) setRoom(result.room);
+    else setError(result.error);
   };
 
   const handleStart = async (mode) => {
@@ -83,17 +83,17 @@ export default function RoomLobby({
     return <div className="lobby lobby--loading">Caricamento lobby...</div>;
   }
 
-  const emptySeats = MAX_SEATS - room.players.length;
-  const seats = Array.from({ length: MAX_SEATS }, (_, i) => room.players[i] ?? null);
+  const emptySeats = maxSeats - room.players.length;
+  const seats = Array.from({ length: maxSeats }, (_, i) => room.players[i] ?? null);
 
   return (
     <div className="lobby">
       <header className="lobby__header">
         <button type="button" className="lobby__back" onClick={() => onLeave()}>
-          ← Esci dalla stanza
+          Indietro
         </button>
         <div className="lobby__title-block">
-          <h1 className="lobby__title">Lobby</h1>
+          <h1 className="lobby__title">Lobby {isBlackjack ? 'Blackjack' : 'Poker'}</h1>
           <span className="lobby__code">{room.code}</span>
         </div>
         <div className="lobby__you">
@@ -113,9 +113,7 @@ export default function RoomLobby({
       </section>
 
       <section className="lobby__seats">
-        <h2>
-          Posti al tavolo ({room.players.length}/{MAX_SEATS})
-        </h2>
+        <h2>Posti al tavolo ({room.players.length}/{maxSeats})</h2>
         <ul className="lobby__seat-grid">
           {seats.map((player, i) => (
             <li
@@ -127,12 +125,8 @@ export default function RoomLobby({
                   <span className="lobby__seat-avatar">{player.nametag.charAt(0)}</span>
                   <div className="lobby__seat-info">
                     <span className="lobby__seat-name">{player.nametag}</span>
-                    {player.id === room.hostId && (
-                      <span className="lobby__seat-role">Host</span>
-                    )}
-                    {player.id === user.id && (
-                      <span className="lobby__seat-role lobby__seat-role--you">Tu</span>
-                    )}
+                    {player.id === room.hostId && <span className="lobby__seat-role">Host</span>}
+                    {player.id === user.id && <span className="lobby__seat-role lobby__seat-role--you">Tu</span>}
                   </div>
                   {isHost && player.id !== user.id && (
                     <button
@@ -153,7 +147,7 @@ export default function RoomLobby({
         </ul>
         {emptySeats > 0 && (
           <p className="lobby__waiting">
-            In attesa di {emptySeats} giocator{emptySeats === 1 ? 'e' : 'i'}…
+            In attesa di {emptySeats} giocator{emptySeats === 1 ? 'e' : 'i'}...
           </p>
         )}
       </section>
@@ -162,40 +156,39 @@ export default function RoomLobby({
 
       {isHost ? (
         <section className="lobby__host-controls">
-          <h2>Controlli host — avvia partita</h2>
+          <h2>Controlli host - avvia partita</h2>
           <div className="lobby__start-grid">
-            <button
-              type="button"
-              className="lobby__start-btn lobby__start-btn--humans"
-              onClick={() => handleStart(START_MODES.HUMANS_ONLY)}
-            >
-              <strong>Solo giocatori presenti</strong>
-              <span>Nessun bot — minimo 2 persone</span>
-            </button>
-            <button
-              type="button"
-              className="lobby__start-btn lobby__start-btn--fill"
-              onClick={() => handleStart(START_MODES.FILL_BOTS)}
-            >
-              <strong>Riempi con bot</strong>
-              <span>
-                {room.players.length} uman{room.players.length === 1 ? 'o' : 'i'} + bot nei posti vuoti
-              </span>
-            </button>
-            <button
-              type="button"
-              className="lobby__start-btn lobby__start-btn--bots"
-              onClick={() => handleStart(START_MODES.ALL_BOTS)}
-            >
-              <strong>Solo tu vs bot</strong>
-              <span>5 bot al tavolo — ignora altri in lobby</span>
-            </button>
+            {isBlackjack ? (
+              <button
+                type="button"
+                className="lobby__start-btn lobby__start-btn--humans"
+                onClick={() => handleStart(START_MODES.HUMANS_ONLY)}
+              >
+                <strong>Avvia blackjack</strong>
+                <span>{room.players.length} giocator{room.players.length === 1 ? 'e' : 'i'} contro il banco</span>
+              </button>
+            ) : (
+              <>
+                <button type="button" className="lobby__start-btn lobby__start-btn--humans" onClick={() => handleStart(START_MODES.HUMANS_ONLY)}>
+                  <strong>Solo giocatori presenti</strong>
+                  <span>Nessun bot - minimo 2 persone</span>
+                </button>
+                <button type="button" className="lobby__start-btn lobby__start-btn--fill" onClick={() => handleStart(START_MODES.FILL_BOTS)}>
+                  <strong>Riempi con bot</strong>
+                  <span>{room.players.length} uman{room.players.length === 1 ? 'o' : 'i'} + bot nei posti vuoti</span>
+                </button>
+                <button type="button" className="lobby__start-btn lobby__start-btn--bots" onClick={() => handleStart(START_MODES.ALL_BOTS)}>
+                  <strong>Solo tu vs bot</strong>
+                  <span>5 bot al tavolo - ignora altri in lobby</span>
+                </button>
+              </>
+            )}
           </div>
         </section>
       ) : (
         <section className="lobby__guest-wait">
           <div className="lobby__pulse" />
-          <p>In attesa che <strong>{room.hostNametag}</strong> avvii la partita…</p>
+          <p>In attesa che <strong>{room.hostNametag}</strong> avvii la partita...</p>
         </section>
       )}
     </div>

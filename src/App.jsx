@@ -11,6 +11,13 @@ import {
   BIG_BLIND,
 } from './game/pokerEngine.js';
 import {
+  createBlackjackGameFromRoster,
+  dealBlackjackHand,
+  blackjackAction,
+  HOUSE_PLAYER_ID,
+} from './game/blackjackEngine.js';
+import {
+  GAME_TYPES,
   getRoomFromUrl,
   joinRoom,
   leaveRoom,
@@ -20,14 +27,31 @@ import {
   saveRoomGameState,
 } from './services/roomService.js';
 import PokerTable from './components/PokerTable.jsx';
+import BlackjackTable from './components/BlackjackTable.jsx';
 import AuthScreen from './components/AuthScreen.jsx';
 import HomePage from './components/HomePage.jsx';
+import GameCatalog from './components/GameCatalog.jsx';
 import RoomLobby from './components/RoomLobby.jsx';
 import AccountMenu from './components/AccountMenu.jsx';
 import { ProfilePage, WalletPage, TermsPage, InfoPage, PublicRoomsPage } from './components/AppPages.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import { useWallet } from './hooks/useWallet.js';
+import { addChipsToPlayer } from './services/authService.js';
 import './App.css';
+
+function withGamePerspective(state, user) {
+  if (!state || !user) return state;
+  if (state.gameType === GAME_TYPES.BLACKJACK) {
+    return {
+      ...state,
+      players: state.players.map((player) => ({
+        ...player,
+        isHuman: player.userId === user.id,
+      })),
+    };
+  }
+  return withHumanPerspective(state, user);
+}
 
 function App() {
   const {
@@ -44,7 +68,8 @@ function App() {
     updateChips,
   } = useAuth();
 
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState('games');
+  const [selectedGame, setSelectedGame] = useState(GAME_TYPES.POKER);
   const [gameState, setGameState] = useState(null);
   const [activeRoom, setActiveRoom] = useState(null);
   const [selectedBet, setSelectedBet] = useState(BIG_BLIND);
@@ -58,6 +83,7 @@ function App() {
   const urlRoomHandled = useRef(false);
   const gameStartingRef = useRef(false);
   const sharedSaveRef = useRef(false);
+  const processedBankTransferRef = useRef(null);
 
   const isSharedRoom = activeRoom?.code && activeRoom.code !== 'LOCAL';
   const isRoomHost = isSharedRoom && activeRoom?.hostId === user?.id;
@@ -77,7 +103,7 @@ function App() {
 
   const acceptTerms = useCallback(() => {
     if (termsKey) localStorage.setItem(termsKey, 'accepted');
-    setScreen('home');
+    setScreen('games');
   }, [termsKey]);
 
   const navigatePage = useCallback((target) => {
@@ -85,9 +111,15 @@ function App() {
   }, []);
   const pageBackTarget = gameState ? 'game' : 'home';
 
+  const openGame = useCallback((gameType) => {
+    setSelectedGame(gameType);
+    setScreen('home');
+  }, []);
+
   const enterLobby = useCallback((room) => {
     gameStartingRef.current = false;
     setActiveRoom(room);
+    setSelectedGame(room.gameType ?? GAME_TYPES.POKER);
     setLobbyNotice(null);
     setScreen('lobby');
   }, []);
@@ -109,14 +141,21 @@ function App() {
 
       if (!nextGame && room.hostId === user.id) {
         const roster = buildRoster(room, startMode, user);
-        nextGame = createGameFromRoster(roster, user);
+        nextGame = (room.gameType ?? GAME_TYPES.POKER) === GAME_TYPES.BLACKJACK
+          ? createBlackjackGameFromRoster(roster, user)
+          : createGameFromRoster(roster, user);
         await saveRoomGameState(activeRoom.code, nextGame);
         await setRoomPlaying(activeRoom.code, startMode);
       }
 
       gameStartingRef.current = 'done';
       setActiveRoom({ ...room, startMode });
-      setGameState(withHumanPerspective(nextGame ?? createGameFromRoster(buildRoster(room, startMode, user), user), user));
+      setSelectedGame(room.gameType ?? GAME_TYPES.POKER);
+      const fallbackRoster = buildRoster(room, startMode, user);
+      const fallbackGame = (room.gameType ?? GAME_TYPES.POKER) === GAME_TYPES.BLACKJACK
+        ? createBlackjackGameFromRoster(fallbackRoster, user)
+        : createGameFromRoster(fallbackRoster, user);
+      setGameState(withGamePerspective(nextGame ?? fallbackGame, user));
       setScreen('game');
       lastSyncedChips.current = user.chips;
     },
@@ -227,7 +266,7 @@ function App() {
         sharedSaveRef.current = false;
         return;
       }
-      setGameState(withHumanPerspective(remote, user));
+      setGameState(withGamePerspective(remote, user));
     }, 900);
 
     return () => clearInterval(id);
@@ -248,9 +287,30 @@ function App() {
       if (isSharedRoom && !isRoomHost) return s;
       const next = dealHand(s);
       void persistGameState(next);
-      return withHumanPerspective(next, user);
+      return withGamePerspective(next, user);
     });
   }, [isSharedRoom, isRoomHost, persistGameState, user]);
+
+  const handleBlackjackDeal = useCallback(() => {
+    setGameState((s) => {
+      if (!s) return s;
+      if (isSharedRoom && !isRoomHost) return s;
+      const next = dealBlackjackHand(s);
+      void persistGameState(next);
+      return withGamePerspective(next, user);
+    });
+  }, [isSharedRoom, isRoomHost, persistGameState, user]);
+
+  const handleBlackjackAction = useCallback((action) => {
+    setGameState((s) => {
+      if (!s) return s;
+      const humanIndex = s.players.findIndex((p) => p.isHuman);
+      if (humanIndex !== s.activePlayerIndex) return s;
+      const next = blackjackAction(s, action);
+      void persistGameState(next);
+      return withGamePerspective(next, user);
+    });
+  }, [persistGameState, user]);
 
   const executeAction = useCallback(
     (action) => {
@@ -278,13 +338,13 @@ function App() {
           setTableAlert(null);
           const next = playerAction(s, 'check', opts);
           void persistGameState(next);
-          return withHumanPerspective(next, user);
+          return withGamePerspective(next, user);
         }
         if (action === 'call' && toCall === 0) {
           setTableAlert(null);
           const next = playerAction(s, 'check', opts);
           void persistGameState(next);
-          return withHumanPerspective(next, user);
+          return withGamePerspective(next, user);
         }
 
         setTableAlert(null);
@@ -300,7 +360,7 @@ function App() {
           }
         }
         void persistGameState(next);
-        return withHumanPerspective(next, user);
+        return withGamePerspective(next, user);
       });
     },
     [selectedBet, wallet, persistGameState, user],
@@ -349,6 +409,7 @@ function App() {
     const active = players[activePlayerIndex];
 
     if (
+      gameState.gameType === GAME_TYPES.BLACKJACK ||
       phase === PHASES.IDLE ||
       phase === PHASES.SHOWDOWN ||
       !active ||
@@ -367,12 +428,20 @@ function App() {
         const fallbackRaiseTo = s.currentBet === 0 ? (betAmount ?? BIG_BLIND) : (s.currentBet + (betAmount ?? BIG_BLIND));
         const next = playerAction(s, engineAction, { betAmount, raiseTo: raiseTo ?? fallbackRaiseTo });
         void persistGameState(next);
-        return withHumanPerspective(next, user);
+        return withGamePerspective(next, user);
       });
     }, 900);
 
     return () => clearTimeout(botTimerRef.current);
   }, [gameState, screen, isSharedRoom, isRoomHost, persistGameState, user]);
+
+  useEffect(() => {
+    if (!gameState || gameState.gameType !== GAME_TYPES.BLACKJACK || gameState.phase !== 'showdown') return;
+    if (isSharedRoom && !isRoomHost) return;
+    if (!gameState.bankTransferId || processedBankTransferRef.current === gameState.bankTransferId) return;
+    processedBankTransferRef.current = gameState.bankTransferId;
+    if (gameState.bankDelta > 0) void addChipsToPlayer(HOUSE_PLAYER_ID, gameState.bankDelta);
+  }, [gameState, isSharedRoom, isRoomHost]);
 
   if (!isAuthenticated) {
     return (
@@ -391,10 +460,22 @@ function App() {
     return <TermsPage mustAccept onAccept={acceptTerms} />;
   }
 
+  if (screen === 'games') {
+    return (
+      <GameCatalog
+        user={user}
+        onSelectGame={openGame}
+        onLogout={handleLogout}
+        onNavigate={navigatePage}
+      />
+    );
+  }
+
   if (screen === 'home') {
     return (
       <HomePage
         user={user}
+        gameType={selectedGame}
         onEnterLobby={enterLobby}
         onQuickPlay={startQuickGame}
         onLogout={handleLogout}
@@ -420,7 +501,14 @@ function App() {
   }
 
   if (screen === 'publicRooms') {
-    return <PublicRoomsPage user={user} onEnterLobby={enterLobby} onBack={() => setScreen(pageBackTarget)} />;
+    return (
+      <PublicRoomsPage
+        user={user}
+        onEnterLobby={enterLobby}
+        onBack={() => setScreen(pageBackTarget)}
+        gameType={selectedGame}
+      />
+    );
   }
 
   if (screen === 'terms') {
@@ -451,7 +539,7 @@ function App() {
     <div className="app app--game">
       <header className="app__topbar">
         <div className="app__topbar-title">
-          <span>PokerBox</span>
+          <span>{gameState.gameType === GAME_TYPES.BLACKJACK ? 'Blackjack' : 'PokerBox'}</span>
         </div>
         <div className="app__user">
           {activeRoom?.code && activeRoom.code !== 'LOCAL' && (
@@ -472,22 +560,35 @@ function App() {
       </header>
 
       <main className="app__main">
-        <PokerTable
-          gameState={gameState}
-          selectedBet={selectedBet}
-          onSelectBet={setSelectedBet}
-          onDeal={handleDeal}
-          canDeal={!isSharedRoom || isRoomHost}
-          onCheck={() => handleAction('check')}
-          onCall={() => handleAction('call')}
-          onRaise={() => handleAction('raise')}
-          onAllIn={() => handleAction('allin')}
-          onFold={() => handleAction('fold')}
-          roomCode={activeRoom?.code}
-          user={user}
-          tableAlert={tableAlert}
-          onDismissAlert={() => setTableAlert(null)}
-        />
+        {gameState.gameType === GAME_TYPES.BLACKJACK ? (
+          <BlackjackTable
+            gameState={gameState}
+            user={user}
+            roomCode={activeRoom?.code}
+            canDeal={!isSharedRoom || isRoomHost}
+            onDeal={handleBlackjackDeal}
+            onHit={() => handleBlackjackAction('hit')}
+            onStand={() => handleBlackjackAction('stand')}
+            onDouble={() => handleBlackjackAction('double')}
+          />
+        ) : (
+          <PokerTable
+            gameState={gameState}
+            selectedBet={selectedBet}
+            onSelectBet={setSelectedBet}
+            onDeal={handleDeal}
+            canDeal={!isSharedRoom || isRoomHost}
+            onCheck={() => handleAction('check')}
+            onCall={() => handleAction('call')}
+            onRaise={() => handleAction('raise')}
+            onAllIn={() => handleAction('allin')}
+            onFold={() => handleAction('fold')}
+            roomCode={activeRoom?.code}
+            user={user}
+            tableAlert={tableAlert}
+            onDismissAlert={() => setTableAlert(null)}
+          />
+        )}
       </main>
       {confirmAction && (
         <div className="app-confirm" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">

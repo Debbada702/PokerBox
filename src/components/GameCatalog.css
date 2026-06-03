@@ -1,0 +1,141 @@
+.game-catalog {
+  min-height: 100vh;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.1rem 1.25rem 2rem;
+}
+
+.game-catalog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.game-catalog__brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.game-catalog__brand > span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #171103;
+  font-weight: 1000;
+  background: #f0d15b;
+  border-radius: 50%;
+}
+
+.game-catalog__brand h1,
+.game-catalog__brand p {
+  margin: 0;
+}
+
+.game-catalog__brand h1 {
+  color: #faf6eb;
+  font-size: 1.8rem;
+}
+
+.game-catalog__brand p {
+  color: #8ea2b8;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.game-catalog__user {
+  display: grid;
+  justify-items: end;
+  color: #f5edd5;
+}
+
+.game-catalog__user span {
+  color: #7ee87e;
+  font-size: 0.78rem;
+}
+
+.game-catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.game-card {
+  min-height: 280px;
+  display: grid;
+  align-content: end;
+  justify-items: start;
+  gap: 0.65rem;
+  padding: 1.25rem;
+  text-align: left;
+  background:
+    linear-gradient(180deg, rgba(16, 23, 34, 0.66), rgba(5, 8, 13, 0.96)),
+    #101722;
+  border: 1px solid rgba(224, 185, 63, 0.24);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.42);
+}
+
+.game-card--poker {
+  background:
+    radial-gradient(circle at 70% 25%, rgba(28, 118, 70, 0.8), transparent 42%),
+    linear-gradient(180deg, #111a25, #06090d);
+}
+
+.game-card--blackjack {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(148, 33, 45, 0.78), transparent 42%),
+    linear-gradient(180deg, #111a25, #06090d);
+}
+
+.game-card__mark {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  color: #171103;
+  font-size: 1.05rem;
+  font-weight: 1000;
+  background: #f0d15b;
+  border-radius: 50%;
+}
+
+.game-card strong {
+  color: #faf6eb;
+  font-size: 1.35rem;
+}
+
+.game-card p {
+  max-width: 360px;
+  margin: 0;
+  color: #a8b8c8;
+  line-height: 1.45;
+}
+
+.game-card em {
+  color: #f0d15b;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .game-catalog__header,
+  .game-catalog__brand {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .game-catalog__grid {
+    grid-template-columns: 1fr;
+  }
+}

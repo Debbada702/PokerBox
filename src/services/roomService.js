@@ -1,6 +1,14 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 
 export const MAX_SEATS = 6;
+export const GAME_TYPES = {
+  POKER: 'poker',
+  BLACKJACK: 'blackjack',
+};
+export const GAME_MAX_SEATS = {
+  [GAME_TYPES.POKER]: 6,
+  [GAME_TYPES.BLACKJACK]: 4,
+};
 
 export const START_MODES = {
   HUMANS_ONLY: 'humans_only',
@@ -47,8 +55,8 @@ export async function getRoom(code) {
   return rooms[code.toUpperCase()] ?? null;
 }
 
-export async function createRoom(host, isPublic = false) {
-  if (isSupabaseConfigured) return createRoomSupabase(host, isPublic);
+export async function createRoom(host, isPublic = false, gameType = GAME_TYPES.POKER) {
+  if (isSupabaseConfigured) return createRoomSupabase(host, isPublic, gameType);
 
   const rooms = loadRooms();
   let code = generateCode();
@@ -61,7 +69,8 @@ export async function createRoom(host, isPublic = false) {
     createdAt: new Date().toISOString(),
     status: 'waiting',
     isPublic,
-    maxSeats: MAX_SEATS,
+    gameType,
+    maxSeats: GAME_MAX_SEATS[gameType] ?? MAX_SEATS,
     players: [
       {
         id: host.id,
@@ -212,10 +221,10 @@ export async function sendRoomMessage(code, user, text) {
   return { ok: true, messages: room.messages };
 }
 
-export async function listPublicRooms() {
-  if (isSupabaseConfigured) return listPublicRoomsSupabase();
+export async function listPublicRooms(gameType = null) {
+  if (isSupabaseConfigured) return listPublicRoomsSupabase(gameType);
   const rooms = Object.values(loadRooms())
-    .filter((room) => room.isPublic && room.status === 'waiting')
+    .filter((room) => room.isPublic && room.status === 'waiting' && (!gameType || (room.gameType ?? GAME_TYPES.POKER) === gameType))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return { ok: true, rooms };
 }
@@ -227,6 +236,17 @@ export function getRoomFromUrl() {
 
 export function buildRoster(room, startMode, currentUser) {
   const roster = [];
+  const gameType = room.gameType ?? GAME_TYPES.POKER;
+
+  if (gameType === GAME_TYPES.BLACKJACK) {
+    return room.players.slice(0, GAME_MAX_SEATS.blackjack).map((p) => ({
+      userId: p.id,
+      nametag: p.nametag,
+      chips: p.id === currentUser.id ? currentUser.chips : (p.chips ?? 0),
+      isHuman: p.id === currentUser.id,
+      isBot: false,
+    }));
+  }
 
   if (startMode === START_MODES.ALL_BOTS) {
     roster.push({
@@ -277,6 +297,11 @@ export function buildRoster(room, startMode, currentUser) {
 
 export function validateStart(room, startMode) {
   const count = room.players.length;
+  if ((room.gameType ?? GAME_TYPES.POKER) === GAME_TYPES.BLACKJACK) {
+    if (count < 1) return { ok: false, error: 'Serve almeno 1 giocatore' };
+    if (count > GAME_MAX_SEATS.blackjack) return { ok: false, error: 'Blackjack supporta massimo 4 giocatori' };
+    return { ok: true };
+  }
 
   if (startMode === START_MODES.ALL_BOTS) return { ok: true };
   if (startMode === START_MODES.HUMANS_ONLY) {
@@ -309,6 +334,7 @@ function roomFromSupabase(row) {
     createdAt: row.created_at,
     status: row.status,
     maxSeats: row.max_seats ?? MAX_SEATS,
+    gameType: row.game_type ?? GAME_TYPES.POKER,
     startMode: row.start_mode,
     startedAt: row.started_at,
     gameState: row.game_state,
@@ -334,6 +360,7 @@ async function getRoomSupabase(code) {
     game_state,
     game_updated_at,
     is_public,
+    game_type,
     room_players(user_id, nametag, chips, joined_at)
   `;
 
@@ -363,12 +390,24 @@ async function getRoomSupabase(code) {
       .maybeSingle());
   }
 
+  if (error?.message?.includes('game_type')) {
+    selectFields = selectFields
+      .replace('game_type,', '')
+      .replace('game_type', '');
+    ({ data, error } = await supabase
+      .from(ROOMS_TABLE)
+      .select(selectFields)
+      .eq('code', clean)
+      .maybeSingle());
+  }
+
   if (error) return null;
   return roomFromSupabase(data);
 }
 
-async function createRoomSupabase(host, isPublic = false) {
+async function createRoomSupabase(host, isPublic = false, gameType = GAME_TYPES.POKER) {
   let code = generateCode();
+  const maxSeats = GAME_MAX_SEATS[gameType] ?? MAX_SEATS;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     let { error } = await supabase.from(ROOMS_TABLE).insert({
@@ -376,16 +415,17 @@ async function createRoomSupabase(host, isPublic = false) {
       host_id: host.id,
       host_nametag: host.nametag,
       status: 'waiting',
-      max_seats: MAX_SEATS,
+      max_seats: maxSeats,
       is_public: isPublic,
+      game_type: gameType,
     });
-    if (error?.message?.includes('is_public')) {
+    if (error?.message?.includes('is_public') || error?.message?.includes('game_type')) {
       ({ error } = await supabase.from(ROOMS_TABLE).insert({
         code,
         host_id: host.id,
         host_nametag: host.nametag,
         status: 'waiting',
-        max_seats: MAX_SEATS,
+        max_seats: maxSeats,
       }));
     }
 
@@ -403,8 +443,8 @@ async function createRoomSupabase(host, isPublic = false) {
   return { ok: false, error: 'Impossibile creare una stanza unica' };
 }
 
-async function listPublicRoomsSupabase() {
-  let { data, error } = await supabase
+async function listPublicRoomsSupabase(gameType = null) {
+  let query = supabase
     .from(ROOMS_TABLE)
     .select(`
       code,
@@ -418,15 +458,44 @@ async function listPublicRoomsSupabase() {
       game_state,
       game_updated_at,
       is_public,
+      game_type,
       room_players(user_id, nametag, chips, joined_at)
     `)
     .eq('status', 'waiting')
     .eq('is_public', true)
     .order('created_at', { ascending: false })
     .limit(30);
+  if (gameType) query = query.eq('game_type', gameType);
+  let { data, error } = await query;
 
   if (error?.message?.includes('chips')) {
-    ({ data, error } = await supabase
+    let fallbackQuery = supabase
+      .from(ROOMS_TABLE)
+      .select(`
+        code,
+        host_id,
+        host_nametag,
+        created_at,
+        status,
+        max_seats,
+        start_mode,
+        started_at,
+        game_state,
+        game_updated_at,
+        is_public,
+        game_type,
+        room_players(user_id, nametag, joined_at)
+      `)
+      .eq('status', 'waiting')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (gameType) fallbackQuery = fallbackQuery.eq('game_type', gameType);
+    ({ data, error } = await fallbackQuery);
+  }
+
+  if (error?.message?.includes('game_type')) {
+    const fallbackQuery = supabase
       .from(ROOMS_TABLE)
       .select(`
         code,
@@ -445,7 +514,8 @@ async function listPublicRoomsSupabase() {
       .eq('status', 'waiting')
       .eq('is_public', true)
       .order('created_at', { ascending: false })
-      .limit(30));
+      .limit(30);
+    ({ data, error } = await fallbackQuery);
   }
 
   if (error) {

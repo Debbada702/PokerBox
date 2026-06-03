@@ -168,14 +168,14 @@ export function TermsPage({ onBack, onAccept, mustAccept = false }) {
   );
 }
 
-export function PublicRoomsPage({ user, onEnterLobby, onBack }) {
+export function PublicRoomsPage({ user, onEnterLobby, onBack, gameType = null }) {
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let alive = true;
     const refresh = async () => {
-      const result = await listPublicRooms();
+      const result = await listPublicRooms(gameType);
       if (!alive) return;
       if (result.ok) {
         setRooms(result.rooms);
@@ -190,7 +190,7 @@ export function PublicRoomsPage({ user, onEnterLobby, onBack }) {
       alive = false;
       clearInterval(id);
     };
-  }, []);
+  }, [gameType]);
 
   const enter = async (code) => {
     const result = await joinRoom(code, user);
@@ -208,7 +208,7 @@ export function PublicRoomsPage({ user, onEnterLobby, onBack }) {
           <div key={room.code} className="page-room">
             <div>
               <strong>{room.code}</strong>
-              <span>{room.hostNametag} · {room.players.length}/{room.maxSeats} giocatori</span>
+              <span>{room.hostNametag} - {room.gameType ?? 'poker'} - {room.players.length}/{room.maxSeats} giocatori</span>
             </div>
             <button type="button" className="page-primary" onClick={() => enter(room.code)}>
               Entra

@@ -264,6 +264,35 @@ export async function saveUserChips(userId, chips) {
   }
 }
 
+export async function addChipsToPlayer(userId, amount) {
+  const delta = Math.trunc(Number(amount) || 0);
+  if (!userId || delta === 0) return { ok: true };
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase
+      .from(PLAYERS_TABLE)
+      .select('chips')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) return { ok: false, error: error.message };
+    const nextChips = Math.max(0, (data?.chips ?? 0) + delta);
+    const { error: updateError } = await supabase
+      .from(PLAYERS_TABLE)
+      .update({ chips: nextChips })
+      .eq('id', userId);
+    if (updateError) return { ok: false, error: updateError.message };
+    return { ok: true, chips: nextChips };
+  }
+
+  const users = loadUsers();
+  const idx = users.findIndex((u) => u.id === userId);
+  if (idx >= 0) {
+    users[idx].chips = Math.max(0, (users[idx].chips ?? 0) + delta);
+    saveUsers(users);
+    return { ok: true, chips: users[idx].chips };
+  }
+  return { ok: true };
+}
+
 export async function updateAccount({ id, nametag, email, password }) {
   if (isSupabaseConfigured) {
     return updateAccountSupabase({ nametag, email, password });

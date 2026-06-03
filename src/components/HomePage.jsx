@@ -5,6 +5,7 @@ import './HomePage.css';
 
 export default function HomePage({
   user,
+  gameType = 'poker',
   onEnterLobby,
   onQuickPlay,
   onLogout,
@@ -17,11 +18,13 @@ export default function HomePage({
   const [isPublicRoom, setIsPublicRoom] = useState(false);
   const [copied, setCopied] = useState(false);
   const [roomLoading, setRoomLoading] = useState(false);
+  const isBlackjack = gameType === 'blackjack';
+  const gameTitle = isBlackjack ? 'Blackjack' : 'PokerBox';
 
   const handleCreateRoom = async () => {
     setRoomError(null);
     setRoomLoading(true);
-    const result = await createRoom(user, isPublicRoom);
+    const result = await createRoom(user, isPublicRoom, gameType);
     setRoomLoading(false);
     if (result.ok) {
       setCreatedRoom(result);
@@ -59,7 +62,7 @@ export default function HomePage({
         />
         <div className="home__brand">
           <span className="home__logo">♠</span>
-          <h1>PokerBox</h1>
+          <h1>{gameTitle}</h1>
         </div>
         <div className="home__user-bar">
           <button type="button" className="home__profile-shortcut" onClick={() => onNavigate('profile')}>
@@ -74,7 +77,11 @@ export default function HomePage({
       <main className="home__grid home__grid--single">
         <section className="home__card home__card--play">
           <h2>Gioca</h2>
-          <p className="home__card-desc">Crea una stanza o unisciti con codice / link invito</p>
+          <p className="home__card-desc">
+            {isBlackjack
+              ? 'Crea una stanza blackjack o unisciti con codice / link invito. Max 4 giocatori contro il banco.'
+              : 'Crea una stanza o unisciti con codice / link invito'}
+          </p>
           <div className="home__visibility">
             <button
               type="button"
@@ -129,9 +136,11 @@ export default function HomePage({
 
           {roomError && <p className="home__error">{roomError}</p>}
 
-          <button type="button" className="home__btn home__btn--ghost" onClick={onQuickPlay}>
-            Partita rapida vs bot
-          </button>
+          {!isBlackjack && (
+            <button type="button" className="home__btn home__btn--ghost" onClick={onQuickPlay}>
+              Partita rapida vs bot
+            </button>
+          )}
         </section>
       </main>
     </div>

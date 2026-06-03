@@ -42,6 +42,7 @@ export default function AccountMenu({
               </button>
             ) : (
               <>
+                <button type="button" onClick={() => go('games')}><span>G</span>Giochi</button>
                 <button type="button" onClick={() => go('profile')}><span>P</span>Profilo e impostazioni</button>
                 <button type="button" onClick={() => go('wallet')}><span>W</span>Wallet BottiCoin</button>
                 <button type="button" onClick={() => go('publicRooms')}><span>R</span>Stanze pubbliche</button>
